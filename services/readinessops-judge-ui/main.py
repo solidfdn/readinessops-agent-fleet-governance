@@ -61,7 +61,7 @@ def health():
     return {
         "status": "ok",
         "service": "readinessops-judge-ui",
-        "project": PROJECT_ID,
+        "access": "judge-console",
     }
 
 
@@ -75,7 +75,7 @@ def architecture():
 
 @app.get("/api/state")
 def api_state():
-    agent_id = request.args.get("agent_id", DEFAULT_AGENT_ID)
+    agent_id = DEFAULT_AGENT_ID
     db = _db()
 
     agent = _doc(db, "agents", agent_id)
@@ -113,10 +113,7 @@ def api_state():
 
     trace_actions = [x for x in actions if x.get("trace_id") == trace_id]
     executed_action = next(
-        (
-            x for x in trace_actions
-            if x.get("execution_status") == "EXECUTED"
-        ),
+        (x for x in trace_actions if x.get("execution_status") == "EXECUTED"),
         {},
     )
     denied_action = next(
@@ -128,29 +125,79 @@ def api_state():
     trace_audits.reverse()
 
     payload = proposal.get("proposal") or {}
-    decision_packs = {
-        "governance": payload.get("governance"),
-        "value_realization": payload.get("value_realization"),
-        "model_routing": payload.get("model_routing"),
-        "portfolio": payload.get("portfolio"),
-    }
+    evidence_impact = revision.get("evidence_impact") or {}
+    armor = blocked_event.get("model_armor") or {}
+
+    pack_names = [
+        key
+        for key in ("governance", "value_realization", "model_routing", "portfolio")
+        if payload.get(key) is not None
+    ]
+
+    approval_recorded = any(
+        x.get("event_type") == "PROPOSAL_APPROVED" for x in trace_audits
+    )
+    publication_recorded = any(
+        x.get("event_type") == "PROPOSAL_PUBLISHED" for x in trace_audits
+    )
+
+    def short_ref(value):
+        if value is None:
+            return None
+        text = str(value)
+        if len(text) <= 18:
+            return text
+        return f"{text[:10]}…{text[-6:]}"
+
+    denial_reasons = denied_action.get("gate_reasons") or []
+    if not denial_reasons and denied_action.get("reason"):
+        denial_reasons = [denied_action["reason"]]
+
+    public_timeline = [
+        {
+            "event_type": item.get("event_type"),
+            "created_at": item.get("created_at"),
+            "actor_type": item.get("actor_type"),
+        }
+        for item in trace_audits
+    ]
 
     return jsonify(
         _clean(
             {
-                "agent_id": agent_id,
-                "trace_id": trace_id,
-                "agent": agent,
-                "current": current,
-                "revision": revision,
-                "proposal": proposal,
-                "boundary": boundary,
-                "trace_event": trace_event,
-                "blocked_event": blocked_event,
-                "executed_action": executed_action,
-                "denied_action": denied_action,
-                "decision_packs": decision_packs,
-                "timeline": trace_audits,
+                "agent": {
+                    "name": agent.get("name") or agent.get("target_agent") or "Case Triage Agent",
+                    "readiness_status": agent.get("readiness_status"),
+                },
+                "governance": {
+                    "trace_ref": short_ref(trace_id),
+                    "event_status": trace_event.get("status"),
+                    "material_change": revision.get("material_change"),
+                    "impact": evidence_impact.get("impact"),
+                    "treatment": evidence_impact.get("treatment"),
+                    "decision_packs": pack_names,
+                    "proposal_status": proposal.get("proposal_status"),
+                    "publication_status": proposal.get("publication_status"),
+                    "boundary_version": boundary.get("version"),
+                    "permitted_actions": boundary.get("permitted_actions") or [],
+                    "prohibited_actions": boundary.get("prohibited_actions") or [],
+                    "approval_recorded": approval_recorded,
+                    "publication_recorded": publication_recorded,
+                    "approval_separate_from_publication": approval_recorded and publication_recorded,
+                },
+                "security": {
+                    "status": blocked_event.get("security_status") or blocked_event.get("status"),
+                    "filter_match_state": armor.get("filter_match_state"),
+                    "confidence_level": armor.get("confidence_level"),
+                },
+                "execution": {
+                    "executed_action": executed_action.get("action_name"),
+                    "execution_status": executed_action.get("execution_status"),
+                    "message_ref": short_ref(executed_action.get("message_id")),
+                    "denied_action": denied_action.get("action_name"),
+                    "denial_reason": "; ".join(denial_reasons[:2]),
+                },
+                "timeline": public_timeline,
             }
         )
     )
@@ -182,13 +229,14 @@ def identity_a_probe():
     try:
         body = response.json()
     except ValueError:
-        body = {"raw": response.text[:1000]}
+        body = {}
 
     return jsonify(
         {
-            "http_status": response.status_code,
-            "runtime_id": GOVERNANCE_RUNTIME_ID,
-            "result": body,
+            "control": "Analysis Identity A protected egress",
+            "outcome": body.get("outcome") or "UNRESOLVED",
+            "destination": body.get("destination"),
+            "protected_http_status": body.get("http_status"),
         }
     ), 200 if response.ok else 502
 
@@ -212,17 +260,22 @@ button{border:0;border-radius:9px;padding:10px 14px;font-weight:700;cursor:point
 button.secondary{background:#334155}
 .chip{display:inline-block;padding:5px 9px;border-radius:999px;background:#e2e8f0;font-size:12px;font-weight:800}
 .chip.good{background:#dcfce7;color:#166534}.chip.bad{background:#fee2e2;color:#991b1b}.chip.warn{background:#ffedd5;color:#9a3412}
+.lifecycle{margin:0 0 18px;padding:13px 16px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff;color:#1e3a8a;font-weight:750;font-size:14px}
+.lifecycle strong{color:#172554}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:18px;box-shadow:0 1px 2px rgba(15,23,42,.05)}
 .card h2{font-size:17px;margin:0 0 14px}
 .kv{display:grid;grid-template-columns:190px 1fr;gap:8px 14px;font-size:14px}
 .k{color:#64748b}.v{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-word}
 .section{margin-top:16px}
+.note{font-size:12px;color:#64748b;line-height:1.4}
 .timeline{max-height:330px;overflow:auto}
 .event{border-left:3px solid #cbd5e1;padding:8px 10px;margin:8px 0;background:#f8fafc}
 .event b{font-size:13px}.event small{display:block;color:#64748b;margin-top:3px}
 .arch{width:100%;border:1px solid #e2e8f0;border-radius:10px;background:#fff}
 pre{white-space:pre-wrap;word-break:break-word;background:#0f172a;color:#e2e8f0;border-radius:9px;padding:12px;font-size:12px;max-height:260px;overflow:auto}
+.probe-proof{font-size:15px;font-weight:700;line-height:1.6}
+.probe-proof.denied{background:#111827;color:#fecaca;border:1px solid #ef4444}
 @media(max-width:900px){.grid{grid-template-columns:1fr}.kv{grid-template-columns:1fr}}
 </style>
 </head>
@@ -238,13 +291,18 @@ pre{white-space:pre-wrap;word-break:break-word;background:#0f172a;color:#e2e8f0;
     <span id="loadStatus" class="chip">Loading…</span>
   </div>
 
+  <div class="lifecycle">
+    <strong>Governed recovery path:</strong>
+    Evidence change → Automatic SUSPEND → Human-published Boundary v2 → READY in reduced scope
+  </div>
+
   <div class="grid">
     <section class="card">
       <h2>1 · Fleet State</h2>
       <div class="kv">
         <div class="k">Agent</div><div class="v" id="agentId">—</div>
         <div class="k">Readiness</div><div id="readiness">—</div>
-        <div class="k">Current Publication</div><div class="v" id="publication">—</div>
+        <div class="k">Current State</div><div class="v" id="publication">—</div>
         <div class="k">Boundary Version</div><div class="v" id="boundaryVersion">—</div>
         <div class="k">Trace ID</div><div class="v" id="traceId">—</div>
       </div>
@@ -256,7 +314,7 @@ pre{white-space:pre-wrap;word-break:break-word;background:#0f172a;color:#e2e8f0;
         <div class="k">Evidence Event</div><div class="v" id="eventId">—</div>
         <div class="k">Event Status</div><div id="eventStatus">—</div>
         <div class="k">Material Change</div><div class="v" id="materialChange">—</div>
-        <div class="k">Model Armor</div><div id="armorStatus">—</div>
+        <div class="k">Security Gate Test</div><div id="armorStatus">—</div>
         <div class="k">Decision Packs</div><div class="v" id="packs">—</div>
       </div>
     </section>
@@ -266,8 +324,8 @@ pre{white-space:pre-wrap;word-break:break-word;background:#0f172a;color:#e2e8f0;
       <div class="kv">
         <div class="k">Proposal</div><div class="v" id="proposalId">—</div>
         <div class="k">Proposal Status</div><div id="proposalStatus">—</div>
-        <div class="k">Approved By</div><div class="v" id="approvedBy">—</div>
-        <div class="k">Published By</div><div class="v" id="publishedBy">—</div>
+        <div class="k">Approval</div><div class="v" id="approvedBy">—</div>
+        <div class="k">Publication</div><div class="v" id="publishedBy">—</div>
         <div class="k">Permitted Actions</div><div class="v" id="permittedActions">—</div>
         <div class="k">Prohibited Actions</div><div class="v" id="prohibitedActions">—</div>
       </div>
@@ -278,12 +336,13 @@ pre{white-space:pre-wrap;word-break:break-word;background:#0f172a;color:#e2e8f0;
       <div class="kv">
         <div class="k">Executed Action</div><div class="v" id="executedAction">—</div>
         <div class="k">Execution Status</div><div id="executionStatus">—</div>
-        <div class="k">Pub/Sub Message ID</div><div class="v" id="messageId">—</div>
-        <div class="k">Denied Action</div><div class="v" id="deniedAction">—</div>
+        <div class="k">Pub/Sub Message</div><div class="v" id="messageId">—</div>
+        <div class="k">Denied Automated Action</div><div class="v" id="deniedAction">—</div>
+        <div class="k"></div><div class="note">Outside automated boundary — manual handling required</div>
       </div>
       <div class="section">
         <b>Live Analysis Identity A proof</b>
-        <pre id="probeResult">Click “Run Analysis Identity A probe”.</pre>
+        <pre id="probeResult" class="probe-proof">Click “Run Analysis Identity A probe”.</pre>
       </div>
     </section>
   </div>
@@ -308,45 +367,80 @@ async function loadState(){
   chip("loadStatus","Refreshing…","");
   const r=await fetch("/api/state");
   const d=await r.json();
-  txt("agentId",d.agent_id);
+
+  txt("agentId",d.agent?.name);
   const ready=d.agent?.readiness_status;
   chip("readiness",ready,ready==="READY"?"good":ready==="SUSPENDED"?"bad":"warn");
-  txt("publication",d.current?.publication_id);
-  txt("boundaryVersion",d.boundary?.version);
-  txt("traceId",d.trace_id);
-  txt("eventId",d.trace_event?.event_id);
-  chip("eventStatus",d.trace_event?.status,d.trace_event?.status==="COMPLETED"?"good":"warn");
-  txt("materialChange",d.revision?.material_change);
-  const blocked=d.blocked_event?.status==="BLOCKED";
-  chip("armorStatus",blocked?"BLOCKED malicious evidence":"No blocked event found",blocked?"bad":"");
-  const packs=Object.entries(d.decision_packs||{}).filter(([,v])=>v!=null).map(([k])=>k);
-  txt("packs",packs.join(" · "));
-  txt("proposalId",d.current?.proposal_id);
-  chip("proposalStatus",d.proposal?.proposal_status,d.proposal?.proposal_status==="PUBLISHED"?"good":"warn");
-  txt("approvedBy",d.proposal?.approved_by);
-  txt("publishedBy",d.proposal?.published_by);
-  txt("permittedActions",(d.boundary?.permitted_actions||[]).join(", "));
-  txt("prohibitedActions",(d.boundary?.prohibited_actions||[]).join(", "));
-  txt("executedAction",d.executed_action?.action_name);
-  chip("executionStatus",d.executed_action?.execution_status,d.executed_action?.execution_status==="EXECUTED"?"good":"");
-  txt("messageId",d.executed_action?.message_id);
-  txt("deniedAction",d.denied_action?.action_name);
+
+  txt("publication",d.governance?.publication_status==="PUBLISHED"
+    ?"Published boundary active":"Not published");
+  txt("boundaryVersion",d.governance?.boundary_version);
+  txt("traceId",d.governance?.trace_ref);
+
+  txt("eventId",d.governance?.trace_ref);
+  chip("eventStatus",d.governance?.event_status,
+    d.governance?.event_status==="COMPLETED"?"good":"warn");
+  txt("materialChange",
+    d.governance?.material_change
+      ? `${d.governance?.impact||"MATERIAL"} · ${d.governance?.treatment||"REASSESS"}`
+      : "No");
+
+  const blocked=d.security?.filter_match_state==="MATCH_FOUND";
+  chip("armorStatus",
+    blocked
+      ? `BLOCKED · ${d.security?.confidence_level||"detected"}`
+      : "No malicious input detected",
+    blocked?"bad":"good");
+
+  txt("packs",(d.governance?.decision_packs||[]).join(" · "));
+  txt("proposalId","Evidence-driven reassessment");
+  chip("proposalStatus",d.governance?.proposal_status,
+    d.governance?.proposal_status==="PUBLISHED"?"good":"warn");
+
+  txt("approvedBy",
+    d.governance?.approval_recorded
+      ?"Recorded separately from publication":"Not recorded");
+  txt("publishedBy",
+    d.governance?.publication_recorded
+      ?"Explicit publication recorded":"Not published");
+
+  txt("permittedActions",(d.governance?.permitted_actions||[]).join(", "));
+  txt("prohibitedActions",(d.governance?.prohibited_actions||[]).join(", "));
+
+  txt("executedAction",d.execution?.executed_action);
+  chip("executionStatus",d.execution?.execution_status,
+    d.execution?.execution_status==="EXECUTED"?"good":"");
+  txt("messageId",d.execution?.message_ref);
+  txt("deniedAction",d.execution?.denied_action);
+
   const timeline=el("timeline");
   timeline.innerHTML="";
   for(const a of (d.timeline||[])){
     const div=document.createElement("div");
     div.className="event";
-    div.innerHTML=`<b>${a.event_type||"AUDIT_EVENT"}</b><small>${a.created_at||""}</small>`;
+    div.innerHTML=`<b>${a.event_type||"AUDIT_EVENT"}</b><small>${a.created_at||""} · ${a.actor_type||"SYSTEM"}</small>`;
     timeline.appendChild(div);
   }
-  chip("loadStatus","Live state loaded","good");
+  chip("loadStatus","Live governed state loaded","good");
 }
 
 async function runProbe(){
-  el("probeResult").textContent="Running protected-action probe from Analysis Identity A…";
+  const box=el("probeResult");
+  box.className="probe-proof";
+  box.textContent="Running protected-action probe from Analysis Identity A…";
+
   const r=await fetch("/api/identity-a-probe",{method:"POST"});
   const d=await r.json();
-  el("probeResult").textContent=JSON.stringify(d,null,2);
+
+  const outcome=d.outcome??"—";
+  const status=d.protected_http_status??"—";
+  const explanation=outcome==="DENIED"
+    ?"Analysis Identity cannot execute protected actions."
+    :"Unexpected probe result — review before demo.";
+
+  box.className=outcome==="DENIED"?"probe-proof denied":"probe-proof";
+  box.textContent=`${outcome} · HTTP ${status}
+${explanation}`;
 }
 
 loadState().catch(e=>{
