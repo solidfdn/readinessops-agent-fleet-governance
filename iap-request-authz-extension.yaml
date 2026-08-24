@@ -1,6 +1,6 @@
 name: readinessops-iap-authz
 service: iap.googleapis.com
-failOpen: true
+failOpen: false
 timeout: 1s
 metadata:
   iapPolicyVersion: "V1"
