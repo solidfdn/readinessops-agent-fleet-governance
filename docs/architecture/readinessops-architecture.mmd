@@ -1,0 +1,92 @@
+%%{init: {
+  "theme": "base",
+  "flowchart": {"curve": "linear", "nodeSpacing": 24, "rankSpacing": 34},
+  "themeVariables": {
+    "fontFamily": "Arial, sans-serif",
+    "primaryColor": "#F8FAFC",
+    "primaryBorderColor": "#1E3A8A",
+    "primaryTextColor": "#0F172A",
+    "lineColor": "#64748B",
+    "clusterBkg": "#FFFFFF",
+    "clusterBorder": "#CBD5E1"
+  }
+}}%%
+
+flowchart LR
+
+subgraph E["1  Evidence & Safety"]
+direction TB
+U[Evidence Upload]
+G[Cloud Storage]
+P[Pub/Sub]
+W[Private Cloud Run<br/>Evidence Worker]
+M{Model Armor}
+B[BLOCKED<br/>No Revision / No LLM]
+R[Governed Revision]
+U --> G --> P --> W --> M
+M -->|MATCH_FOUND| B
+M -->|SAFE| R
+end
+
+subgraph A["2  Analysis & Governance — Identity A"]
+direction TB
+O[Agent Runtime A<br/>Governance Orchestrator]
+S[Specialized Agents<br/>Evidence Impact · Governance<br/>Value & Portfolio · Model Routing]
+D[Four Decision Packs]
+V[Deterministic<br/>Grounding Validation]
+Q[REVIEW_REQUIRED<br/>NOT_PUBLISHED]
+O --> S --> D --> V --> Q
+end
+
+subgraph H["3  Human Control"]
+direction TB
+HR[Human Review<br/>Boundary Edit]
+AP[Approve]
+PU[Explicit Publish]
+DB[Active Delegation<br/>Boundary]
+RDY[Agent READY]
+HR --> AP
+AP -->|Current unchanged| PU
+PU --> DB --> RDY
+end
+
+subgraph X["4  Governed Execution"]
+direction TB
+GT[Deterministic<br/>Execution Gate]
+IA[Analysis Identity A]
+DN[DENIED<br/>Fail Closed]
+IB[Executor Identity B]
+GW[Agent Gateway]
+ACT[Protected Action<br/>Pub/Sub]
+GT -->|Protected attempt| IA --> DN
+GT -->|Permitted request| IB --> GW --> ACT
+end
+
+R --> O
+Q --> HR
+RDY --> GT
+
+F[(Firestore Official Records<br/>Revision · Proposal · Publication<br/>Boundary · Audit · Action Request)]
+T[One Governance Trace ID<br/>Evidence Event → Human Decision → Execution]
+
+R -.-> F
+Q -.-> F
+PU -.-> F
+GT -.-> F
+ACT -.-> F
+
+T -.-> R
+T -.-> HR
+T -.-> ACT
+
+classDef security fill:#FFF7ED,stroke:#C2410C,color:#7C2D12;
+classDef blocked fill:#FEF2F2,stroke:#B91C1C,color:#7F1D1D;
+classDef governance fill:#EFF6FF,stroke:#1D4ED8,color:#172554;
+classDef human fill:#F8FAFC,stroke:#475569,color:#0F172A;
+classDef execution fill:#ECFDF5,stroke:#047857,color:#064E3B;
+
+class M security;
+class B,DN blocked;
+class O,S,D,V,Q governance;
+class HR,AP,PU,DB,RDY human;
+class GT,IA,IB,GW,ACT execution;
