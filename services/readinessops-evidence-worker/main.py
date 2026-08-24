@@ -6,8 +6,12 @@ from datetime import datetime, timezone
 from flask import Flask, jsonify, request
 from google.cloud import firestore, storage
 
+from app.grounding import validate_grounding_claims
+from app.persistence import persist_reassessment_proposal
 from app.reassessment import reassess_and_suspend
 from app.revision import create_draft_revision
+from app.runtime_client import run_governance_reassessment
+from app.schemas import GovernedAssessmentProposal
 
 PROJECT_ID = "readinessops-agent-governance"
 
@@ -60,22 +64,16 @@ def pubsub_push():
     receipt_ref = db.collection("event_receipts").document(event_key)
 
     try:
-        receipt_snap = receipt_ref.get()
+        transaction = db.transaction()
 
-        if receipt_snap.exists:
-            receipt = receipt_snap.to_dict()
+        @firestore.transactional
+        def claim_event(transaction):
+            receipt_snap = receipt_ref.get(transaction=transaction)
 
-            if receipt.get("status") == "COMPLETED":
-                return jsonify({
-                    "status": "DUPLICATE_IGNORED",
-                    "event_id": event_id,
-                    "revision_id": receipt.get("revision_id"),
-                }), 200
+            if receipt_snap.exists:
+                return receipt_snap.to_dict()
 
-            revision_id = receipt.get("revision_id")
-        else:
-            revision_id = None
-            receipt_ref.set({
+            receipt = {
                 "event_id": event_id,
                 "event_key": event_key,
                 "status": "PROCESSING",
@@ -85,7 +83,20 @@ def pubsub_push():
                 "pubsub_message_id": pubsub_message_id,
                 "agent_id": agent_id,
                 "created_at": datetime.now(timezone.utc),
-            })
+            }
+            transaction.set(receipt_ref, receipt)
+            return receipt
+
+        receipt = claim_event(transaction)
+
+        if receipt.get("status") == "COMPLETED":
+            return jsonify({
+                "status": "DUPLICATE_IGNORED",
+                "event_id": event_id,
+                "revision_id": receipt.get("revision_id"),
+            }), 200
+
+        revision_id = receipt.get("revision_id")
 
         if not revision_id:
             blob = storage.Client(project=PROJECT_ID).bucket(bucket).blob(
@@ -125,21 +136,97 @@ def pubsub_push():
                 "draft_created_at": datetime.now(timezone.utc),
             })
 
-        result = reassess_and_suspend(
+        impact_result = reassess_and_suspend(
             agent_id=agent_id,
             revision_id=revision_id,
         )
 
+        # Re-read the governed revision after Evidence Impact persistence.
+        revision = (
+            db.collection("revisions")
+            .document(revision_id)
+            .get()
+            .to_dict()
+        )
+
+        evidence_id = revision["evidence_ids"][0]
+
+        evidence = (
+            db.collection("evidence_items")
+            .document(evidence_id)
+            .get()
+            .to_dict()
+        )
+
+        published = (
+            db.collection("published_records")
+            .document(revision["base_publication_id"])
+            .get()
+            .to_dict()
+        )
+
+        if not published:
+            raise ValueError("Published baseline is missing.")
+
+        proposal_dict = run_governance_reassessment(
+            target_agent=revision["target_agent"],
+            published_current=published["proposal"],
+            new_evidence=evidence["evidence_text"],
+            evidence_impact=revision.get("evidence_impact") or impact_result,
+            source_event_id=event_id,
+        )
+
+        # Fixed schema validation — application side.
+        proposal = GovernedAssessmentProposal.model_validate(
+            proposal_dict
+        )
+
+        # Deterministic grounding validation — model cannot self-certify.
+        grounding = json.loads(
+            validate_grounding_claims(
+                evidence=evidence["evidence_text"],
+                draft=json.dumps(
+                    proposal_dict,
+                    ensure_ascii=False,
+                ),
+            )
+        )
+
+        if grounding["status"] != "PASS":
+            raise ValueError(
+                "Grounding validation failed: "
+                + "; ".join(grounding["issues"])
+            )
+
+        proposal.grounding_status = "PASS"
+        proposal.grounding_issues = grounding["issues"]
+
+        proposal_result = persist_reassessment_proposal(
+            proposal=proposal,
+            source_evidence=evidence["evidence_text"],
+            revision_id=revision_id,
+            evidence_id=evidence_id,
+            source_event_id=event_id,
+            trace_id=event_id,
+        )
+
         receipt_ref.update({
             "status": "COMPLETED",
-            "result": result,
+            "result": impact_result,
+            "proposal_id": proposal_result["proposal_id"],
+            "run_id": proposal_result["run_id"],
+            "agent_run_id": proposal_result["agent_run_id"],
+            "trace_id": event_id,
+            "last_error": None,
             "completed_at": datetime.now(timezone.utc),
         })
 
         return jsonify({
             "status": "COMPLETED",
             "event_id": event_id,
-            "result": result,
+            "trace_id": event_id,
+            "impact": impact_result,
+            "proposal": proposal_result,
         }), 200
 
     except Exception as exc:

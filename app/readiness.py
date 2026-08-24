@@ -3,6 +3,7 @@ from uuid import uuid4
 import re
 
 from google.cloud import firestore
+from google.cloud.firestore_v1 import DELETE_FIELD
 
 PROJECT_ID = "readinessops-agent-governance"
 
@@ -106,6 +107,10 @@ def activate_ready_state(
             "readiness_basis": basis,
             "readiness_activated_by": actor,
             "readiness_activated_at": now,
+            "suspended_at": DELETE_FIELD,
+            "suspension_reason": DELETE_FIELD,
+            "suspension_revision_id": DELETE_FIELD,
+            "suspension_evidence_id": DELETE_FIELD,
         })
 
         transaction.set(audit_ref, {

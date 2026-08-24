@@ -37,12 +37,21 @@ def reassess_and_suspend(
 
     agent = agent_snap.to_dict()
 
-    # Fail closed: this transition is specifically READY -> SUSPENDED.
-    if agent.get("readiness_status") != "READY":
-        raise ValueError(
-            f"Agent must be READY before drift suspension. "
-            f"Current={agent.get('readiness_status')}"
-        )
+    readiness_before = agent.get("readiness_status")
+
+    if readiness_before not in ("READY", "SUSPENDED"):
+        return {
+            "agent_id": agent_id,
+            "revision_id": revision_id,
+            "impact": "UNRESOLVED",
+            "treatment": "NO_CHANGE",
+            "material_change": False,
+            "state_changed": False,
+            "reason": (
+                f"Reassessment recorded without readiness transition; "
+                f"current_status={readiness_before}."
+            ),
+        }
 
     if rev.get("parent_revision_id") != agent.get("current_revision_id"):
         raise ValueError(
@@ -136,6 +145,34 @@ NEW EVIDENCE:
         impact.material_change = True
 
     if not impact.material_change:
+        now = datetime.now(timezone.utc)
+        audit_id = f"AUDIT_{uuid4().hex[:16]}"
+
+        batch = db.batch()
+        batch.update(rev_ref, {
+            "evidence_impact_status": "COMPLETED",
+            "evidence_impact": impact.model_dump(),
+            "material_change": False,
+            "impact_completed_at": now,
+        })
+        batch.set(
+            db.collection("audit_events").document(audit_id),
+            {
+                "audit_id": audit_id,
+                "event_type": "EVIDENCE_IMPACT_COMPLETED",
+                "agent_id": agent_id,
+                "revision_id": revision_id,
+                "evidence_id": evidence_id,
+                "impact": impact.impact,
+                "treatment": impact.treatment,
+                "material_change": False,
+                "actor_type": "AI",
+                "actor": "evidence_impact_agent",
+                "created_at": now,
+            },
+        )
+        batch.commit()
+
         return {
             "agent_id": agent_id,
             "revision_id": revision_id,
@@ -144,6 +181,7 @@ NEW EVIDENCE:
             "treatment": impact.treatment,
             "material_change": False,
             "state_changed": False,
+            "audit_id": audit_id,
         }
 
     if impact.treatment != "SUSPEND":
@@ -165,14 +203,15 @@ NEW EVIDENCE:
         "impact_completed_at": now,
     })
 
-    batch.update(agent_ref, {
-        "readiness_status": "SUSPENDED",
-        "suspended_at": now,
-        "suspension_reason": impact.rationale,
-        "suspension_revision_id": revision_id,
-        "suspension_evidence_id": evidence_id,
-        "previous_readiness_status": "READY",
-    })
+    if readiness_before == "READY":
+        batch.update(agent_ref, {
+            "readiness_status": "SUSPENDED",
+            "suspended_at": now,
+            "suspension_reason": impact.rationale,
+            "suspension_revision_id": revision_id,
+            "suspension_evidence_id": evidence_id,
+            "previous_readiness_status": "READY",
+        })
 
     batch.set(
         db.collection("audit_events").document(impact_audit_id),
@@ -212,8 +251,11 @@ NEW EVIDENCE:
 
     return {
         "agent_id": agent_id,
-        "from_status": "READY",
-        "to_status": "SUSPENDED",
+        "from_status": readiness_before,
+        "to_status": (
+            "SUSPENDED" if readiness_before == "READY"
+            else readiness_before
+        ),
         "revision_id": revision_id,
         "evidence_id": evidence_id,
         "impact": impact.impact,
