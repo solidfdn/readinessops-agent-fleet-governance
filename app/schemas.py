@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 from pydantic import BaseModel, Field
 
@@ -42,12 +43,43 @@ class PortfolioPack(BaseModel):
 
 class DelegationBoundary(BaseModel):
     status: Literal["PROPOSED"]
+
+    # Proposed by AI. Empty means fail-closed until explicitly defined.
+    permitted_actions: list[str] = Field(default_factory=list)
+    human_review_required_actions: list[str] = Field(default_factory=list)
     permitted_skills: list[str]
     permitted_tools: list[str]
     permitted_data_classes: list[str]
     permitted_case_impact: list[str]
     mandatory_human_review_conditions: list[str]
     prohibited_actions: list[str]
+
+
+class PublishedDelegationBoundary(BaseModel):
+    boundary_id: str
+    target_agent: str
+    proposal_id: str
+    publication_id: str
+    revision_id: str
+    version: int
+
+    status: Literal["ACTIVE", "SUPERSEDED", "REVOKED"]
+
+    permitted_actions: list[str]
+    human_review_required_actions: list[str]
+    permitted_skills: list[str]
+    permitted_tools: list[str]
+    permitted_data_classes: list[str]
+    permitted_case_impact: list[str]
+    mandatory_human_review_conditions: list[str]
+    prohibited_actions: list[str]
+
+    valid_from: datetime
+    valid_until: datetime | None = None
+
+    published_by: str
+    published_at: datetime
+    content_hash: str
 
 
 class ActionDecision(BaseModel):
