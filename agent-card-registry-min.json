@@ -1,0 +1,25 @@
+{
+  "name": "readinessops_orchestrator",
+  "description": "Coordinates governed ReadinessOps assessments.",
+  "version": "0.1.0",
+  "supportedInterfaces": [
+    {
+      "url": "https://asia-northeast1-aiplatform.googleapis.com/reasoningEngines/v1/projects/649947189508/locations/asia-northeast1/reasoningEngines/2493591216726212608/api/a2a/app",
+      "protocolBinding": "JSONRPC",
+      "protocolVersion": "1.0.0"
+    }
+  ],
+  "capabilities": {
+    "streaming": true
+  },
+  "defaultInputModes": ["text/plain"],
+  "defaultOutputModes": ["text/plain"],
+  "skills": [
+    {
+      "id": "readinessops_orchestrator",
+      "name": "ReadinessOps Governance Orchestrator",
+      "description": "Coordinates evidence impact, governance, value, routing, and governed action assessment.",
+      "tags": ["governance", "readiness", "multi-agent"]
+    }
+  ]
+}

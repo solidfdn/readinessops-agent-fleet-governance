@@ -1,0 +1,10 @@
+name: readinessops-iap-authz-policy
+target:
+  resources:
+    - "projects/readinessops-agent-governance/locations/asia-northeast1/agentGateways/readinessops-agent-gateway"
+policyProfile: REQUEST_AUTHZ
+action: CUSTOM
+customProvider:
+  authzExtension:
+    resources:
+      - "projects/readinessops-agent-governance/locations/asia-northeast1/authzExtensions/readinessops-iap-authz"
