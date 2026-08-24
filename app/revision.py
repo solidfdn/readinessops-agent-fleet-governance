@@ -24,6 +24,11 @@ def create_draft_revision(
     evidence_text: str,
     source_label: str,
     actor: str,
+    *,
+    actor_type: str = "HUMAN",
+    source_uri: str | None = None,
+    source_event_id: str | None = None,
+    object_generation: str | None = None,
 ) -> dict:
     db = _db()
     now = datetime.now(timezone.utc)
@@ -48,7 +53,11 @@ def create_draft_revision(
         "source_label": source_label,
         "evidence_text": evidence_text,
         "evidence_status": "ADDED",
+        "source_uri": source_uri,
+        "source_event_id": source_event_id,
+        "object_generation": object_generation,
         "created_by": actor,
+        "created_by_type": actor_type,
         "created_at": now,
     })
 
@@ -73,7 +82,7 @@ def create_draft_revision(
         "revision_id": revision_id,
         "parent_revision_id": current_data["revision_id"],
         "evidence_id": evidence_id,
-        "actor_type": "HUMAN",
+        "actor_type": actor_type,
         "actor": actor,
         "created_at": now,
     })

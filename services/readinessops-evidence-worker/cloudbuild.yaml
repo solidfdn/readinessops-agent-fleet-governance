@@ -1,0 +1,12 @@
+steps:
+- name: gcr.io/cloud-builders/docker
+  args:
+  - build
+  - -f
+  - services/readinessops-evidence-worker/Dockerfile
+  - -t
+  - asia-northeast1-docker.pkg.dev/$PROJECT_ID/readinessops/readinessops-evidence-worker:latest
+  - .
+
+images:
+- asia-northeast1-docker.pkg.dev/$PROJECT_ID/readinessops/readinessops-evidence-worker:latest
