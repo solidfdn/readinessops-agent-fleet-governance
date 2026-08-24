@@ -12,6 +12,7 @@ COPY app/reassessment.py ./app/reassessment.py
 COPY app/grounding.py ./app/grounding.py
 COPY app/persistence.py ./app/persistence.py
 COPY app/runtime_client.py ./app/runtime_client.py
+COPY app/model_armor.py ./app/model_armor.py
 
 COPY services/readinessops-evidence-worker/main.py ./main.py
 

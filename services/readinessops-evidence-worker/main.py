@@ -8,6 +8,7 @@ from google.cloud import firestore, storage
 
 from app.grounding import validate_grounding_claims
 from app.persistence import persist_reassessment_proposal
+from app.model_armor import sanitize_evidence
 from app.reassessment import reassess_and_suspend
 from app.revision import create_draft_revision
 from app.runtime_client import run_governance_reassessment
@@ -89,7 +90,7 @@ def pubsub_push():
 
         receipt = claim_event(transaction)
 
-        if receipt.get("status") == "COMPLETED":
+        if receipt.get("status") in ("COMPLETED", "BLOCKED"):
             return jsonify({
                 "status": "DUPLICATE_IGNORED",
                 "event_id": event_id,
@@ -105,6 +106,62 @@ def pubsub_push():
             )
 
             evidence_text = blob.download_as_text()
+
+            # Security gate BEFORE Revision / Gemini / Proposal creation.
+            armor = sanitize_evidence(evidence_text)
+
+            if armor["blocked"]:
+                now = datetime.now(timezone.utc)
+                audit_id = (
+                    "AUDIT_SECURITY_"
+                    + hashlib.sha256(
+                        f"{event_id}|MODEL_ARMOR_BLOCK".encode("utf-8")
+                    ).hexdigest()[:16]
+                )
+
+                batch = db.batch()
+
+                batch.set(
+                    db.collection("audit_events").document(audit_id),
+                    {
+                        "audit_id": audit_id,
+                        "event_type": "MODEL_ARMOR_INPUT_BLOCKED",
+                        "event_id": event_id,
+                        "agent_id": agent_id,
+                        "source_uri": f"gs://{bucket}/{object_id}",
+                        "object_generation": generation,
+                        "model_armor_template": armor["template"],
+                        "filter_match_state": armor["filter_match_state"],
+                        "pi_match_state": armor["pi_match_state"],
+                        "confidence_level": armor["confidence_level"],
+                        "invocation_result": armor["invocation_result"],
+                        "actor_type": "SYSTEM",
+                        "actor": "readinessops_evidence_worker",
+                        "created_at": now,
+                    },
+                )
+
+                batch.update(
+                    receipt_ref,
+                    {
+                        "status": "BLOCKED",
+                        "security_status": "MODEL_ARMOR_BLOCKED",
+                        "model_armor": armor,
+                        "audit_id": audit_id,
+                        "trace_id": event_id,
+                        "last_error": None,
+                        "completed_at": now,
+                    },
+                )
+
+                batch.commit()
+
+                return jsonify({
+                    "status": "BLOCKED",
+                    "event_id": event_id,
+                    "trace_id": event_id,
+                    "security_control": "MODEL_ARMOR",
+                }), 200
 
             agent_snap = db.collection("agents").document(agent_id).get()
 
