@@ -163,6 +163,32 @@ def request_protected_action(
         target_agent = agent.get("target_agent")
         boundary_id = agent.get("active_delegation_boundary_id")
 
+        # Correlate protected actions to the evidence-driven governance trace.
+        # While SUSPENDED, the causal revision is the suspension revision.
+        # After republish/reactivation, current_revision_id becomes causal.
+        trace_revision_id = (
+            agent.get("suspension_revision_id")
+            if agent.get("readiness_status") == "SUSPENDED"
+            else agent.get("current_revision_id")
+        )
+
+        trace_id = None
+
+        if trace_revision_id:
+            trace_revision_ref = (
+                db.collection("revisions").document(trace_revision_id)
+            )
+            trace_revision_snap = trace_revision_ref.get(
+                transaction=transaction
+            )
+
+            if trace_revision_snap.exists:
+                trace_revision = trace_revision_snap.to_dict()
+                trace_id = (
+                    trace_revision.get("trace_id")
+                    or trace_revision.get("source_event_id")
+                )
+
         active_pointer = None
         boundary = None
 
@@ -342,6 +368,8 @@ def request_protected_action(
                 "readiness_publication_id"
             ),
             "revision_id": agent.get("current_revision_id"),
+            "trace_revision_id": trace_revision_id,
+            "trace_id": trace_id,
             "delegation_boundary_id": boundary_id,
             "delegation_boundary_version": (
                 boundary.get("version") if boundary else None
@@ -370,6 +398,8 @@ def request_protected_action(
                     boundary.get("version") if boundary else None
                 ),
                 "human_review_clearance_id": human_review_clearance_id,
+                "trace_id": trace_id,
+                "trace_revision_id": trace_revision_id,
                 "created_at": now,
             })
 
@@ -387,6 +417,8 @@ def request_protected_action(
             "actor_type": "REQUESTER",
             "actor": actor,
             "reason": reason,
+            "trace_id": trace_id,
+            "trace_revision_id": trace_revision_id,
             "created_at": now,
         })
 
@@ -403,6 +435,8 @@ def request_protected_action(
                 boundary.get("version") if boundary else None
             ),
             "idempotency_key": idempotency_key,
+            "trace_id": trace_id,
+            "trace_revision_id": trace_revision_id,
             "audit_id": audit_id,
         }
 

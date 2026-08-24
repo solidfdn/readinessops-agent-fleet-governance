@@ -58,6 +58,7 @@ def _claim_action(action_request_id: str) -> dict:
                 "action_request_id": action_request_id,
                 "existing_claim_status": claim.get("status"),
                 "message_id": claim.get("message_id"),
+                "trace_id": claim.get("trace_id"),
             }
 
         agent_id = action.get("agent_id")
@@ -229,6 +230,8 @@ def _claim_action(action_request_id: str) -> dict:
                 "agent_id": agent_id,
                 "reasons": reasons,
                 "executor": EXECUTOR_NAME,
+                "trace_id": action.get("trace_id"),
+                "trace_revision_id": action.get("trace_revision_id"),
                 "created_at": now,
             })
 
@@ -246,6 +249,8 @@ def _claim_action(action_request_id: str) -> dict:
             "action_name": action.get("action_name"),
             "delegation_boundary_id": boundary_id,
             "publication_id": action.get("publication_id"),
+            "trace_id": action.get("trace_id"),
+            "trace_revision_id": action.get("trace_revision_id"),
             "executor": EXECUTOR_NAME,
             "claimed_at": now,
         })
@@ -286,6 +291,8 @@ def execute_permitted_action(action_request_id: str) -> dict:
         "delegation_boundary_version": action.get(
             "delegation_boundary_version"
         ),
+        "trace_id": action.get("trace_id"),
+        "trace_revision_id": action.get("trace_revision_id"),
     }
 
     encoded = base64.b64encode(
@@ -309,6 +316,9 @@ def execute_permitted_action(action_request_id: str) -> dict:
                 "attributes": {
                     "readinessops_action_request_id": action_request_id,
                     "readinessops_executor": EXECUTOR_NAME,
+                    "readinessops_trace_id": (
+                        action.get("trace_id") or "UNRESOLVED"
+                    ),
                 },
             }]
         },
@@ -352,6 +362,8 @@ def execute_permitted_action(action_request_id: str) -> dict:
             "publication_id": action.get("publication_id"),
             "message_id": message_id,
             "executor": EXECUTOR_NAME,
+            "trace_id": action.get("trace_id"),
+            "trace_revision_id": action.get("trace_revision_id"),
             "created_at": now,
         })
         batch.commit()
@@ -361,6 +373,7 @@ def execute_permitted_action(action_request_id: str) -> dict:
             "action_request_id": action_request_id,
             "message_id": message_id,
             "destination": "pubsub.googleapis.com",
+            "trace_id": action.get("trace_id"),
         }
 
     error_text = response.text[:1000]
@@ -385,6 +398,8 @@ def execute_permitted_action(action_request_id: str) -> dict:
         "http_status": response.status_code,
         "error": error_text,
         "executor": EXECUTOR_NAME,
+        "trace_id": action.get("trace_id"),
+        "trace_revision_id": action.get("trace_revision_id"),
         "created_at": now,
     })
     batch.commit()
@@ -394,4 +409,5 @@ def execute_permitted_action(action_request_id: str) -> dict:
         "action_request_id": action_request_id,
         "http_status": response.status_code,
         "error": error_text,
+        "trace_id": action.get("trace_id"),
     }

@@ -95,6 +95,8 @@ def review_and_edit_proposal(
             "proposal_id": proposal_id,
             "run_id": record["run_id"],
             "revision_id": record["revision_id"],
+            "trace_id": record.get("trace_id"),
+            "trace_revision_id": record["revision_id"],
             "actor_type": "HUMAN",
             "actor": actor,
             "comment": comment,
@@ -206,6 +208,8 @@ def edit_delegation_boundary(
             "proposal_id": proposal_id,
             "run_id": record["run_id"],
             "revision_id": record["revision_id"],
+            "trace_id": record.get("trace_id"),
+            "trace_revision_id": record["revision_id"],
             "actor_type": "HUMAN",
             "actor": actor,
             "comment": comment,
@@ -268,6 +272,8 @@ def approve_proposal(proposal_id: str, actor: str, comment: str) -> dict:
             "proposal_id": proposal_id,
             "run_id": record["run_id"],
             "revision_id": record["revision_id"],
+            "trace_id": record.get("trace_id"),
+            "trace_revision_id": record["revision_id"],
             "actor_type": "HUMAN",
             "actor": actor,
             "comment": comment,
@@ -316,6 +322,8 @@ def reject_proposal(proposal_id: str, actor: str, reason: str) -> dict:
             "proposal_id": proposal_id,
             "run_id": record["run_id"],
             "revision_id": record["revision_id"],
+            "trace_id": record.get("trace_id"),
+            "trace_revision_id": record["revision_id"],
             "actor_type": "HUMAN",
             "actor": actor,
             "reason": reason,
@@ -450,6 +458,8 @@ def publish_proposal(proposal_id: str, actor: str, comment: str) -> dict:
             "proposal_id": proposal_id,
             "publication_id": publication_id,
             "revision_id": record["revision_id"],
+            "trace_id": record.get("trace_id"),
+            "trace_revision_id": record["revision_id"],
             "version": boundary_version,
             "status": "ACTIVE",
             **boundary_policy,
@@ -466,6 +476,8 @@ def publish_proposal(proposal_id: str, actor: str, comment: str) -> dict:
             "version": boundary_version,
             "publication_id": publication_id,
             "revision_id": record["revision_id"],
+            "trace_id": record.get("trace_id"),
+            "trace_revision_id": record["revision_id"],
             "updated_at": now,
         })
 
@@ -475,6 +487,8 @@ def publish_proposal(proposal_id: str, actor: str, comment: str) -> dict:
             "run_id": record["run_id"],
             "agent_run_id": record["agent_run_id"],
             "revision_id": record["revision_id"],
+            "trace_id": record.get("trace_id"),
+            "trace_revision_id": record["revision_id"],
             "target_agent": target_agent,
             "proposal": record["proposal"],
             "delegation_boundary_id": boundary_id,
@@ -511,6 +525,8 @@ def publish_proposal(proposal_id: str, actor: str, comment: str) -> dict:
             "proposal_id": proposal_id,
             "run_id": record["run_id"],
             "revision_id": record["revision_id"],
+            "trace_id": record.get("trace_id"),
+            "trace_revision_id": record["revision_id"],
             "delegation_boundary_id": boundary_id,
             "delegation_boundary_version": boundary_version,
             "updated_at": now,
@@ -523,6 +539,8 @@ def publish_proposal(proposal_id: str, actor: str, comment: str) -> dict:
             "publication_id": publication_id,
             "run_id": record["run_id"],
             "revision_id": record["revision_id"],
+            "trace_id": record.get("trace_id"),
+            "trace_revision_id": record["revision_id"],
             "delegation_boundary_id": boundary_id,
             "delegation_boundary_version": boundary_version,
             "actor_type": "HUMAN",
@@ -538,6 +556,8 @@ def publish_proposal(proposal_id: str, actor: str, comment: str) -> dict:
             "publication_id": publication_id,
             "delegation_boundary_id": boundary_id,
             "delegation_boundary_version": boundary_version,
+            "trace_id": record.get("trace_id"),
+            "trace_revision_id": record["revision_id"],
             "current_target_agent": target_agent,
             "published_by": actor,
         }
@@ -595,6 +615,12 @@ def issue_human_review_clearance(
 
         boundary = boundary_snap.to_dict()
 
+        trace_id = boundary.get("trace_id")
+        trace_revision_id = (
+            boundary.get("trace_revision_id")
+            or boundary.get("revision_id")
+        )
+
         if boundary.get("status") != "ACTIVE":
             raise ValueError("Delegation Boundary is not ACTIVE.")
 
@@ -620,6 +646,8 @@ def issue_human_review_clearance(
             "delegation_boundary_version": boundary.get("version"),
             "publication_id": publication_id,
             "revision_id": boundary.get("revision_id"),
+            "trace_id": trace_id,
+            "trace_revision_id": trace_revision_id,
             "approved_by": actor,
             "approved_at": now,
             "comment": comment,
@@ -634,6 +662,8 @@ def issue_human_review_clearance(
             "action_name": action_name,
             "delegation_boundary_id": boundary_id,
             "publication_id": publication_id,
+            "trace_id": trace_id,
+            "trace_revision_id": trace_revision_id,
             "actor_type": "HUMAN",
             "actor": actor,
             "comment": comment,
@@ -648,6 +678,8 @@ def issue_human_review_clearance(
             "delegation_boundary_id": boundary_id,
             "delegation_boundary_version": boundary.get("version"),
             "publication_id": publication_id,
+            "trace_id": trace_id,
+            "trace_revision_id": trace_revision_id,
             "approved_by": actor,
             "audit_id": audit_id,
         }
