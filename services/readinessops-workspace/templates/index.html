@@ -1,0 +1,817 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ReadinessOps Governance Workspace</title>
+<style>
+:root{
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,
+    BlinkMacSystemFont,"Segoe UI",sans-serif;
+  color:#0f172a;background:#f8fafc;
+}
+*{box-sizing:border-box}
+body{margin:0}
+header{background:#0f172a;color:#fff;padding:22px 28px}
+header h1{margin:0;font-size:26px}
+header p{margin:7px 0 0;color:#cbd5e1}
+main{max-width:1480px;margin:auto;padding:20px}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+button{
+  border:0;border-radius:9px;padding:10px 14px;font-weight:750;
+  cursor:pointer;background:#1d4ed8;color:#fff
+}
+button.secondary{background:#334155}
+button.success{background:#047857}
+button.warn{background:#c2410c}
+button:disabled{opacity:.45;cursor:not-allowed}
+select,input,textarea{
+  width:100%;border:1px solid #cbd5e1;border-radius:8px;
+  padding:9px 10px;background:#fff;color:#0f172a
+}
+textarea{min-height:100px;resize:vertical}
+label{display:block;font-size:12px;font-weight:700;color:#475569}
+.field{margin:10px 0}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.card{
+  background:#fff;border:1px solid #e2e8f0;border-radius:14px;
+  padding:18px;box-shadow:0 1px 2px rgba(15,23,42,.05)
+}
+.card h2{font-size:18px;margin:0 0 12px}
+.card h3{font-size:14px;margin:16px 0 8px}
+.chip{
+  display:inline-block;padding:5px 9px;border-radius:999px;
+  background:#e2e8f0;font-size:12px;font-weight:800
+}
+.chip.good{background:#dcfce7;color:#166534}
+.chip.bad{background:#fee2e2;color:#991b1b}
+.chip.warn{background:#ffedd5;color:#9a3412}
+.kv{display:grid;grid-template-columns:180px 1fr;gap:8px 12px;font-size:13px}
+.k{color:#64748b}
+.v{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  word-break:break-word
+}
+.story{
+  margin:0 0 16px;padding:12px 15px;border:1px solid #bfdbfe;
+  border-radius:12px;background:#eff6ff;color:#1e3a8a;font-weight:750
+}
+.result{
+  white-space:pre-wrap;word-break:break-word;background:#0f172a;
+  color:#e2e8f0;border-radius:9px;padding:11px;font-size:12px;
+  min-height:58px;max-height:260px;overflow:auto
+}
+.pack{border-left:3px solid #93c5fd;padding:8px 10px;margin:8px 0;background:#f8fafc}
+.note{font-size:12px;color:#64748b;line-height:1.45}
+.full{grid-column:1/-1}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+@media(max-width:900px){
+  .grid{grid-template-columns:1fr}
+  .kv{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>ReadinessOps — Governance Workspace</h1>
+  <p>Use changing evidence to review, publish, and enforce AI delegation boundaries.</p>
+</header>
+
+<main>
+  <div class="toolbar">
+    <select id="agentSelect" style="max-width:360px"></select>
+    <button onclick="refreshAll()">Refresh workspace</button>
+    <span id="actorChip" class="chip">Operator</span>
+    <span id="loadChip" class="chip">Loading…</span>
+  </div>
+
+  <div class="story">
+    Evidence → Automatic reassessment → Human review →
+    Explicit publication → Governed execution
+  </div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>1 · Add Evidence</h2>
+      <div class="field">
+        <label>Evidence label</label>
+        <input id="evidenceLabel" value="workspace-safety-change">
+      </div>
+      <div class="field">
+        <label>Paste text evidence</label>
+        <textarea id="evidenceText"
+          placeholder="Describe the new evidence that may change the agent safety basis."></textarea>
+      </div>
+      <div class="field">
+        <label>Or upload a UTF-8 .txt file</label>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <input
+            id="evidenceFile"
+            type="file"
+            accept=".txt,text/plain"
+            hidden
+            onchange="document.getElementById('evidenceFileName').textContent =
+              this.files.length ? this.files[0].name : 'No file selected'">
+          <label
+            for="evidenceFile"
+            style="display:inline-block;padding:10px 14px;border:1px solid #cbd5e1;
+                   border-radius:9px;background:#fff;font-weight:700;cursor:pointer">
+            Choose .txt file
+          </label>
+          <span id="evidenceFileName" style="color:#64748b;font-size:14px">
+            No file selected
+          </span>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="warn" onclick="uploadEvidence()">Upload and reassess</button>
+      </div>
+      <div id="evidenceResult" class="result">
+        No new evidence submitted from this workspace.
+      </div>
+      <p class="note">
+        Model Armor runs before Revision or LLM processing.
+        Safe evidence is processed asynchronously by the private worker.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>2 · Reassessment</h2>
+      <div class="kv">
+        <div class="k">Agent</div><div class="v" id="agentName">—</div>
+        <div class="k">Readiness</div><div id="readiness">—</div>
+        <div class="k">Latest event</div><div id="eventStatus">—</div>
+        <div class="k">Material change</div><div class="v" id="material">—</div>
+        <div class="k">Proposal</div><div id="proposalStatus">—</div>
+        <div class="k">Trace</div><div class="v" id="traceId">—</div>
+      </div>
+      <h3>Four Decision Packs</h3>
+      <div id="decisionPacks"></div>
+    </section>
+
+    <section class="card">
+      <h2>3 · Human Decision</h2>
+      <div class="field">
+        <label>Review comment</label>
+        <textarea id="reviewComment">Reviewed in Governance Workspace. Automation may resume only within a reduced low-impact scope.</textarea>
+      </div>
+      <div class="field">
+        <label>Permitted actions — comma separated</label>
+        <input id="permittedActions">
+      </div>
+      <div class="field">
+        <label>Human-review-required actions</label>
+        <input id="reviewActions">
+      </div>
+      <div class="field">
+        <label>Permitted tools</label>
+        <input id="permittedTools" value="pubsub_publish">
+      </div>
+      <div class="field">
+        <label>Permitted data classes</label>
+        <input id="dataClasses" value="synthetic_demo">
+      </div>
+      <div class="field">
+        <label>Permitted case impact</label>
+        <input id="caseImpact" value="LOW">
+      </div>
+      <div class="field">
+        <label>Prohibited actions</label>
+        <input id="prohibitedActions">
+      </div>
+      <div class="field">
+        <label>Mandatory human-review conditions</label>
+        <textarea id="reviewConditions">Financial-hardship and ambiguous cases remain outside automated execution and must be handled manually.</textarea>
+      </div>
+      <div class="actions">
+        <button type="button" id="reviewButton" onclick="recordReview()">Record review</button>
+        <button type="button" id="boundaryButton" onclick="saveBoundary()">Save boundary</button>
+        <button type="button" id="approveButton" class="secondary" onclick="approveProposal()">Approve</button>
+        <button type="button" id="publishButton" class="warn" onclick="publishProposal()">Explicit Publish</button>
+        <button type="button" id="activateButton" class="success" onclick="activateReady()">Activate READY</button>
+      </div>
+      <div id="decisionResult" class="result">No human action performed in this session.</div>
+      <p class="note">
+        Approval does not change Current.
+        Explicit Publish is a separate state transition.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>4 · Governed Execution</h2>
+      <div class="field">
+        <label>Action</label>
+        <select id="actionName">
+          <option value="route_standard_case">route_standard_case</option>
+          <option value="route_hardship_case_to_human_review">
+            route_hardship_case_to_human_review
+          </option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Tool</label>
+        <input id="toolName" value="pubsub_publish">
+      </div>
+      <div class="field">
+        <label>Data class</label>
+        <input id="actionDataClass" value="synthetic_demo">
+      </div>
+      <div class="field">
+        <label>Case impact</label>
+        <input id="actionImpact" value="LOW">
+      </div>
+      <div class="actions">
+        <button onclick="requestAction()">Request action</button>
+        <button class="success" id="executeButton"
+          onclick="executeAction()" disabled>Execute with Identity B</button>
+        <button class="secondary" onclick="runIdentityAProbe()">
+          Test Analysis Identity A
+        </button>
+      </div>
+      <div id="executionResult" class="result">No action requested in this session.</div>
+      <p class="note">
+        The deterministic gate decides whether the request is permitted.
+        Executor Identity B revalidates before protected execution.
+      </p>
+    </section>
+
+    <section class="card full">
+      <h2>Current Governed State</h2>
+      <div class="kv">
+        <div class="k">Current publication</div>
+        <div class="v" id="currentPublication">—</div>
+        <div class="k">Active boundary version</div>
+        <div class="v" id="boundaryVersion">—</div>
+        <div class="k">Permitted actions</div>
+        <div class="v" id="activePermitted">—</div>
+        <div class="k">Prohibited actions</div>
+        <div class="v" id="activeProhibited">—</div>
+        <div class="k">Last executed action</div>
+        <div class="v" id="lastExecuted">—</div>
+        <div class="k">Last denied action</div>
+        <div class="v" id="lastDenied">—</div>
+      </div>
+    </section>
+  </div>
+    <section class="card full">
+      <h2>How this run is implemented on Google Cloud</h2>
+      <div class="note" style="font-size:13px;line-height:1.7">
+        <b>AI analysis:</b> Gemini 3.5 Flash + Google ADK / Agent Runtime A &nbsp;·&nbsp;
+        <b>Input security:</b> Model Armor &nbsp;·&nbsp;
+        <b>Event pipeline:</b> Cloud Storage + Pub/Sub + Cloud Run &nbsp;·&nbsp;
+        <b>Official governed state:</b> Firestore &nbsp;·&nbsp;
+        <b>Protected execution:</b> Agent Identity + Agent Gateway + Executor Runtime B
+      </div>
+    </section>
+
+</main>
+
+<script>
+const el=id=>document.getElementById(id);
+let currentState={};
+let latestActionRequestId=null;
+let pendingEvidenceObject=null;
+let evidencePollTimer=null;
+
+function txt(id,value){el(id).textContent=value??"—";}
+function chip(id,value,kind=""){
+  el(id).innerHTML=`<span class="chip ${kind}">${value??"—"}</span>`;
+}
+function value(id){return el(id).value.trim();}
+function csv(id){return value(id).split(",").map(v=>v.trim()).filter(Boolean);}
+async function api(url,options={}){
+  const response=await fetch(url,options);
+  const body=await response.json();
+  if(!response.ok) throw new Error(body.error||JSON.stringify(body));
+  return body;
+}
+function selectedAgent(){return el("agentSelect").value||"case-triage-agent";}
+function showResult(id,data){
+  const box=el(id);
+  box.innerHTML="";
+
+  const payload=(data && data.result && typeof data.result==="object")
+    ? data.result
+    : (data||{});
+
+  if((data && data.error) || payload.error){
+    const heading=document.createElement("div");
+    heading.style.fontWeight="800";
+    heading.style.color="#fecaca";
+    heading.textContent="Operation failed";
+
+    const body=document.createElement("div");
+    body.style.marginTop="6px";
+    body.textContent=(data && data.error) || payload.error;
+    box.append(heading,body);
+    return;
+  }
+
+  let title="Operation completed";
+  let message="The governed operation completed successfully.";
+  let next="";
+
+  const proposalStatus=payload.proposal_status||"";
+  const publicationStatus=payload.publication_status||"";
+  const gateStatus=payload.gate_status||payload.status||"";
+  const executionStatus=payload.execution_status||"";
+  const protectedHttpStatus=
+    payload.protected_http_status ??
+    data?.protected_http_status ??
+    data?.http_status;
+
+  if(id==="decisionResult"){
+    if(payload.to_status==="READY" || payload.readiness_status==="READY"){
+      title="Agent reactivated";
+      const version=payload.delegation_boundary_version;
+      message=version
+        ? `READY was restored against Published Delegation Boundary v${version}.`
+        : "READY was restored against the explicitly published Delegation Boundary.";
+    }else if(proposalStatus==="PUBLISHED" || publicationStatus==="PUBLISHED"){
+      title="Proposal explicitly published";
+      message="The reviewed Delegation Boundary is now part of the official governed state.";
+      next="Next: reactivate READY against the published boundary.";
+    }else if(proposalStatus==="APPROVED"){
+      title="Proposal approved";
+      message="Human approval was recorded. The Current Published Boundary has not changed.";
+      next="Next: Explicit Publish is still required.";
+    }else if(payload.human_edited===true){
+      title="Delegation Boundary updated";
+      message="The human-reviewed boundary was saved to the proposal.";
+      next="Current remains unchanged until Explicit Publish.";
+    }else if(proposalStatus==="REVIEW_REQUIRED"){
+      title="Human review recorded";
+      message="The proposal remains under review and is not published.";
+      next="Next: review or edit the proposed Delegation Boundary.";
+    }
+  }
+
+  if(id==="executionResult"){
+    if(executionStatus==="EXECUTED"){
+      title="Protected action executed";
+      message="The permitted action was executed through Executor Identity B.";
+    }else if(gateStatus==="PERMITTED"){
+      title="Protected action permitted";
+      message="The request passed the deterministic execution gate.";
+      next="Next: execute through Executor Identity B.";
+    }else if(gateStatus==="DENIED"){
+      title="Protected action denied";
+      message=payload.reason||"The action is outside the active Published Delegation Boundary.";
+    }else if(payload.outcome==="DENIED"){
+      title="Analysis Identity denied";
+      message=`Protected execution denied · HTTP ${protectedHttpStatus??"—"}.`;
+    }
+  }
+
+  const heading=document.createElement("div");
+  heading.style.fontWeight="800";
+  heading.style.fontSize="15px";
+  heading.textContent=title;
+
+  const body=document.createElement("div");
+  body.style.marginTop="6px";
+  body.textContent=message;
+
+  box.append(heading,body);
+
+  if(next){
+    const n=document.createElement("div");
+    n.style.marginTop="8px";
+    n.style.fontWeight="700";
+    n.textContent=next;
+    box.appendChild(n);
+  }
+
+  const details=document.createElement("details");
+  details.style.marginTop="12px";
+
+  const summary=document.createElement("summary");
+  summary.textContent="Technical details";
+  summary.style.cursor="pointer";
+
+  const pre=document.createElement("pre");
+  pre.style.marginTop="8px";
+  pre.textContent=JSON.stringify(data,null,2);
+
+  details.append(summary,pre);
+  box.appendChild(details);
+}
+
+function renderEvidenceResult(stage,data={}){
+  const box=el("evidenceResult");
+  box.innerHTML="";
+
+  const title=document.createElement("div");
+  title.style.fontWeight="800";
+  title.style.fontSize="15px";
+  title.style.marginBottom="6px";
+
+  const message=document.createElement("div");
+  message.style.lineHeight="1.5";
+
+  const next=document.createElement("div");
+  next.style.marginTop="8px";
+  next.style.fontWeight="700";
+
+  if(stage==="UPLOADING"){
+    title.textContent="Uploading evidence…";
+    message.textContent="Submitting the new evidence to the governed evidence pipeline.";
+  }else if(stage==="UPLOADED"){
+    title.textContent="Evidence uploaded";
+    message.textContent="Reassessment has started and is running asynchronously.";
+    next.textContent="Waiting for the event-driven worker…";
+  }else if(stage==="PROCESSING"){
+    title.textContent="Reassessment in progress";
+    message.textContent="The evidence is being processed through the governed reassessment pipeline.";
+  }else if(stage==="COMPLETED"){
+    title.textContent="Reassessment completed";
+    message.textContent=data.proposal_id
+      ? "A new governed revision and proposal were created."
+      : "The evidence was processed successfully.";
+    next.textContent=data.proposal_id
+      ? "Next: review the refreshed proposal and Decision Packs."
+      : "No new review proposal was created.";
+  }else if(stage==="BLOCKED"){
+    title.textContent="Evidence blocked by Model Armor";
+    message.textContent="The security gate stopped this evidence before Revision or LLM processing.";
+    next.textContent="No governance proposal was created from this evidence.";
+  }else if(stage==="TIMEOUT"){
+    title.textContent="Reassessment is still running";
+    message.textContent="Processing has not reached a terminal state yet.";
+    next.textContent="Use Refresh workspace to check the latest governed state.";
+  }else{
+    title.textContent="Evidence operation failed";
+    message.textContent=data.error||"The request could not be completed.";
+  }
+
+  box.appendChild(title);
+  box.appendChild(message);
+  if(next.textContent) box.appendChild(next);
+
+  const technical={
+    status:data.status,
+    event_id:data.event_id,
+    revision_id:data.revision_id,
+    proposal_id:data.proposal_id,
+    security_status:data.security_status,
+    object_name:data.object_name
+  };
+
+  const clean=Object.fromEntries(
+    Object.entries(technical).filter(([,v])=>v!==undefined && v!==null && v!=="")
+  );
+
+  if(Object.keys(clean).length){
+    const details=document.createElement("details");
+    details.style.marginTop="12px";
+
+    const summary=document.createElement("summary");
+    summary.textContent="Technical details";
+    summary.style.cursor="pointer";
+
+    const pre=document.createElement("pre");
+    pre.style.marginTop="8px";
+    pre.textContent=JSON.stringify(clean,null,2);
+
+    details.appendChild(summary);
+    details.appendChild(pre);
+    box.appendChild(details);
+  }
+}
+
+function hydrateBoundary(proposed,active){
+  const boundary=proposed||active||{};
+  el("permittedActions").value=(boundary.permitted_actions||[]).join(", ");
+  el("reviewActions").value=(boundary.human_review_required_actions||[]).join(", ");
+  el("permittedTools").value=(boundary.permitted_tools||["pubsub_publish"]).join(", ");
+  el("dataClasses").value=(boundary.permitted_data_classes||["synthetic_demo"]).join(", ");
+  el("caseImpact").value=(boundary.permitted_case_impact||["LOW"]).join(", ");
+  el("prohibitedActions").value=(boundary.prohibited_actions||[]).join(", ");
+  el("reviewConditions").value=(boundary.mandatory_human_review_conditions||[]).join("\n");
+}
+
+function updateWorkflowControls(state){
+  const proposalStatus=state.proposal?.proposal_status||"";
+  const publicationStatus=state.proposal?.publication_status||"";
+  const readiness=state.agent?.readiness_status||"";
+
+  // UI affordance mirrors the governed state.
+  // Backend governance rules remain authoritative.
+  const reviewable=proposalStatus==="REVIEW_REQUIRED";
+
+  el("reviewButton").disabled=!reviewable;
+  el("boundaryButton").disabled=!reviewable;
+  el("approveButton").disabled=!reviewable;
+
+  el("publishButton").disabled=!(
+    proposalStatus==="APPROVED" &&
+    publicationStatus==="NOT_PUBLISHED"
+  );
+
+  el("activateButton").disabled=!(
+    proposalStatus==="PUBLISHED" &&
+    publicationStatus==="PUBLISHED" &&
+    readiness!=="READY"
+  );
+}
+function stopEvidencePolling(){
+  if(evidencePollTimer){
+    clearInterval(evidencePollTimer);
+    evidencePollTimer=null;
+  }
+}
+
+function startEvidencePolling(objectName){
+  pendingEvidenceObject=objectName;
+  stopEvidencePolling();
+  let attempts=0;
+
+  evidencePollTimer=setInterval(async()=>{
+    attempts+=1;
+    try{
+      const state=await refreshAll();
+      const event=state.latest_event||{};
+      const terminal=["COMPLETED","BLOCKED"].includes(event.status);
+      if(event.object_id===pendingEvidenceObject && terminal){
+        stopEvidencePolling();
+        renderEvidenceResult(event.status,{
+          status:event.status,
+          event_id:event.event_id,
+          revision_id:event.revision_id,
+          proposal_id:event.proposal_id,
+          security_status:event.security_status,
+          object_name:event.object_id
+        });
+        chip(
+          "loadChip",
+          event.status==="COMPLETED"
+            ? "Reassessment completed"
+            : "Evidence blocked by security gate",
+          event.status==="COMPLETED" ? "good" : "bad"
+        );
+      }else if(attempts>=40){
+        stopEvidencePolling();
+        renderEvidenceResult("TIMEOUT",{object_name:pendingEvidenceObject});
+        chip("loadChip","Reassessment still running · refresh manually","warn");
+      }else{
+        renderEvidenceResult("PROCESSING",{object_name:pendingEvidenceObject});
+      }
+    }catch(error){
+      if(attempts>=40) stopEvidencePolling();
+    }
+  },10000);
+}
+
+async function loadAgents(){
+  const agents=await api("/api/agents");
+  const select=el("agentSelect");
+  const previous=select.value;
+  select.innerHTML="";
+  for(const agent of agents){
+    const option=document.createElement("option");
+    option.value=agent.agent_id;
+    option.textContent=`${agent.name} · ${agent.readiness_status||"UNSET"}`;
+    select.appendChild(option);
+  }
+  if(previous && [...select.options].some(x=>x.value===previous)){
+    select.value=previous;
+  }
+}
+
+async function refreshAll(){
+  chip("loadChip","Refreshing…","");
+  const state=await api(`/api/workspace?agent_id=${encodeURIComponent(selectedAgent())}`);
+  currentState=state;
+  txt("actorChip",state.actor);
+  txt("agentName",state.agent?.name);
+  const ready=state.agent?.readiness_status;
+  chip("readiness",ready,ready==="READY"?"good":ready==="SUSPENDED"?"bad":"warn");
+
+  const event=state.latest_event||{};
+  chip(
+    "eventStatus",
+    event.security_status||event.status,
+    event.status==="COMPLETED"?"good":event.status==="BLOCKED"?"bad":"warn"
+  );
+
+  // Rehydrate the Evidence panel from the latest terminal event.
+  // This changes presentation only; the governed state is not modified.
+  if(!pendingEvidenceObject && ["COMPLETED","BLOCKED"].includes(event.status)){
+    renderEvidenceResult(event.status,{
+      status:event.status,
+      event_id:event.event_id,
+      revision_id:event.revision_id,
+      proposal_id:event.proposal_id,
+      security_status:event.security_status,
+      object_name:event.object_id
+    });
+  }
+
+  const impact=state.revision?.evidence_impact||{};
+  txt(
+    "material",
+    state.revision?.material_change
+      ? `${impact.impact||"MATERIAL"} · ${impact.treatment||"SUSPEND"}`
+      : "No material change recorded"
+  );
+
+  const proposal=state.proposal||{};
+  chip(
+    "proposalStatus",
+    `${proposal.proposal_status||"—"} / ${proposal.publication_status||"—"}`,
+    proposal.proposal_status==="PUBLISHED"?"good":
+      proposal.proposal_status==="APPROVED"?"warn":""
+  );
+  txt("traceId",state.trace_id);
+
+  const packs=el("decisionPacks");
+  packs.innerHTML="";
+  for(const [name,pack] of Object.entries(state.decision_packs||{})){
+    if(!pack) continue;
+    const div=document.createElement("div");
+    div.className="pack";
+    const summary=
+      pack.recommendation||
+      pack.priority||
+      pack.rationale||
+      pack.value_rationale||
+      "Generated";
+    div.innerHTML=`<b>${name.replaceAll("_"," ")}</b><div class="note">${String(summary).slice(0,280)}</div>`;
+    packs.appendChild(div);
+  }
+
+  hydrateBoundary(proposal.proposed_boundary,state.boundary);
+  updateWorkflowControls(state);
+  txt("currentPublication",state.current?.publication_id);
+  txt("boundaryVersion",state.boundary?.version);
+  txt("activePermitted",(state.boundary?.permitted_actions||[]).join(", "));
+  txt("activeProhibited",(state.boundary?.prohibited_actions||[]).join(", "));
+  txt("lastExecuted",state.execution?.executed_action?.action_name);
+  txt("lastDenied",state.execution?.denied_action?.action_name);
+  chip("loadChip","Live state loaded","good");
+  return state;
+}
+
+async function uploadEvidence(){
+  const form=new FormData();
+  form.set("agent_id",selectedAgent());
+  form.set("label",value("evidenceLabel"));
+  form.set("text",value("evidenceText"));
+  const file=el("evidenceFile").files[0];
+  if(file) form.set("file",file);
+  try{
+    renderEvidenceResult("UPLOADING");
+    const result=await api("/api/evidence",{method:"POST",body:form});
+    renderEvidenceResult("UPLOADED",result);
+    chip("loadChip","Evidence uploaded · waiting for worker","warn");
+    startEvidencePolling(result.object_name);
+  }catch(error){
+    renderEvidenceResult("ERROR",{error:error.message});
+  }
+}
+
+function proposalId(){return currentState.proposal?.proposal_id;}
+
+async function recordReview(){
+  try{
+    const result=await api("/api/review",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        proposal_id:proposalId(),
+        comment:value("reviewComment")
+      })
+    });
+    showResult("decisionResult",result);
+    await refreshAll();
+  }catch(error){showResult("decisionResult",{error:error.message});}
+}
+
+async function saveBoundary(){
+  try{
+    const result=await api("/api/boundary",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        proposal_id:proposalId(),
+        comment:value("reviewComment"),
+        permitted_actions:csv("permittedActions"),
+        human_review_required_actions:csv("reviewActions"),
+        permitted_tools:csv("permittedTools"),
+        permitted_data_classes:csv("dataClasses"),
+        permitted_case_impact:csv("caseImpact"),
+        prohibited_actions:csv("prohibitedActions"),
+        mandatory_human_review_conditions:
+          value("reviewConditions").split("\n").map(v=>v.trim()).filter(Boolean)
+      })
+    });
+    showResult("decisionResult",result);
+    await refreshAll();
+  }catch(error){showResult("decisionResult",{error:error.message});}
+}
+
+async function approveProposal(){
+  try{
+    const result=await api("/api/approve",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        proposal_id:proposalId(),
+        comment:
+          "Approved in Governance Workspace. Approval does not publish or authorize execution."
+      })
+    });
+    showResult("decisionResult",result);
+    await refreshAll();
+  }catch(error){showResult("decisionResult",{error:error.message});}
+}
+
+async function publishProposal(){
+  try{
+    const result=await api("/api/publish",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        proposal_id:proposalId(),
+        comment:
+          "Explicitly published from Governance Workspace after human review."
+      })
+    });
+    showResult("decisionResult",result);
+    await refreshAll();
+  }catch(error){showResult("decisionResult",{error:error.message});}
+}
+
+async function activateReady(){
+  try{
+    const result=await api("/api/activate",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        agent_id:selectedAgent(),
+        proposal_id:proposalId(),
+        basis:
+          "Reactivated from Governance Workspace against the explicitly published Delegation Boundary."
+      })
+    });
+    showResult("decisionResult",result);
+    await refreshAll();
+  }catch(error){showResult("decisionResult",{error:error.message});}
+}
+
+async function requestAction(){
+  try{
+    const result=await api("/api/action/request",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        agent_id:selectedAgent(),
+        action_name:value("actionName"),
+        tool_name:value("toolName"),
+        data_class:value("actionDataClass"),
+        case_impact:value("actionImpact")
+      })
+    });
+    latestActionRequestId=result.action_request_id||null;
+    el("executeButton").disabled=result.gate_status!=="PERMITTED";
+    showResult("executionResult",result);
+    await refreshAll();
+  }catch(error){showResult("executionResult",{error:error.message});}
+}
+
+async function executeAction(){
+  if(!latestActionRequestId) return;
+  try{
+    const result=await api("/api/action/execute",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({action_request_id:latestActionRequestId})
+    });
+    showResult("executionResult",result);
+    el("executeButton").disabled=true;
+    await refreshAll();
+  }catch(error){showResult("executionResult",{error:error.message});}
+}
+
+async function runIdentityAProbe(){
+  try{
+    const result=await api("/api/identity-a-probe",{method:"POST"});
+    showResult("executionResult",result);
+  }catch(error){showResult("executionResult",{error:error.message});}
+}
+
+async function boot(){
+  try{
+    await loadAgents();
+    el("agentSelect").value="case-triage-agent";
+    el("agentSelect").addEventListener("change",refreshAll);
+    await refreshAll();
+  }catch(error){
+    chip("loadChip","Load failed","bad");
+    console.error(error);
+  }
+}
+boot();
+</script>
+</body>
+</html>
