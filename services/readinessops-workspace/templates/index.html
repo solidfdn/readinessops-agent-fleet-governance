@@ -70,6 +70,223 @@ label{display:block;font-size:12px;font-weight:700;color:#475569}
   .kv{grid-template-columns:1fr}
 }
 </style>
+
+<style id="solifan-readinessops-ui-v2">
+:root{
+  --solifan-navy:#0B1F3A;
+  --solifan-blue:#246BFD;
+  --solifan-blue-soft:#EAF3FF;
+  --solifan-border:#D8E2F0;
+  --solifan-muted:#64748B;
+  --solifan-surface:#FFFFFF;
+  --solifan-page:#F8FAFC;
+  --solifan-success-bg:#DCFCE7;
+  --solifan-success:#166534;
+  --solifan-warning-bg:#FFF7E6;
+  --solifan-danger-bg:#FEE2E2;
+  --solifan-danger:#B42318;
+}
+
+/* Quiet, SOLIFAN-like surface language */
+body{
+  background:var(--solifan-page) !important;
+  color:var(--solifan-navy) !important;
+}
+header,
+.topbar,
+.app-header,
+.page-header{
+  background:var(--solifan-surface) !important;
+  color:var(--solifan-navy) !important;
+  border-bottom:1px solid var(--solifan-border) !important;
+  box-shadow:none !important;
+}
+header h1, header h2, header h3,
+.topbar h1, .app-header h1, .page-header h1{
+  color:var(--solifan-navy) !important;
+}
+header p, header small,
+.topbar p, .app-header p, .page-header p{
+  color:var(--solifan-muted) !important;
+}
+
+.card,
+.panel,
+section.card,
+[class~="card"]{
+  background:var(--solifan-surface) !important;
+  border-color:var(--solifan-border) !important;
+  box-shadow:none !important;
+}
+
+h1,h2,h3,h4{
+  color:var(--solifan-navy);
+}
+
+button,
+.btn{
+  border-radius:8px !important;
+  box-shadow:none !important;
+  min-height:36px;
+  font-weight:700;
+}
+
+/* Separate control from outcome. */
+.actions,
+.button-row,
+.button-group{
+  gap:10px !important;
+  margin-top:14px !important;
+  margin-bottom:16px !important;
+  align-items:center !important;
+}
+
+/* Result is a status card, not a console. */
+.result,
+.result-box,
+.status-output,
+.proof-result{
+  margin-top:14px !important;
+  padding:13px 15px !important;
+  min-height:58px !important;
+  background:#F8FBFF !important;
+  color:var(--solifan-navy) !important;
+  border:1px solid var(--solifan-border) !important;
+  border-radius:10px !important;
+  box-shadow:none !important;
+  line-height:1.45 !important;
+}
+
+/* Works even when the legacy result container has no stable class. */
+*:has(> .solifan-result-title){
+  margin-top:14px !important;
+  padding:13px 15px !important;
+  min-height:58px !important;
+  background:#F8FBFF !important;
+  color:var(--solifan-navy) !important;
+  border:1px solid var(--solifan-border) !important;
+  border-radius:10px !important;
+  box-shadow:none !important;
+  line-height:1.45 !important;
+}
+
+.solifan-result-title{
+  display:block;
+  font-size:14px;
+  font-weight:800;
+  color:var(--solifan-navy);
+}
+.solifan-result-caption{
+  display:block;
+  margin-top:4px;
+  font-size:12px;
+  font-weight:400;
+  color:var(--solifan-muted);
+}
+
+.result details,
+.result-box details,
+*:has(> .solifan-result-title) details{
+  margin-top:8px !important;
+}
+
+details{
+  border-color:var(--solifan-border) !important;
+  box-shadow:none !important;
+}
+
+input, textarea, select{
+  border-color:#C7D5E8 !important;
+  border-radius:8px !important;
+  box-shadow:none !important;
+}
+input:focus, textarea:focus, select:focus{
+  outline:none !important;
+  border-color:var(--solifan-blue) !important;
+  box-shadow:0 0 0 2px rgba(36,107,253,.10) !important;
+}
+
+/* Keep semantic status colors soft. */
+.success,
+.status-success,
+.pill.success{
+  background:var(--solifan-success-bg) !important;
+  color:var(--solifan-success) !important;
+}
+.danger,
+.status-danger,
+.pill.danger{
+  background:var(--solifan-danger-bg) !important;
+  color:var(--solifan-danger) !important;
+}
+
+/* Never let an empty/probe placeholder dominate the card. */
+.solifan-proof-idle{
+  max-width:680px;
+}
+</style>
+
+
+<style id="solifan-final-readability-v1">
+button:disabled,
+.btn:disabled{
+  opacity:1 !important;
+  filter:none !important;
+  background:#EEF2F7 !important;
+  color:#64748B !important;
+  border:1px solid #D8E2F0 !important;
+  box-shadow:none !important;
+  cursor:not-allowed !important;
+}
+.governance-state-note{
+  margin-top:12px;
+  padding:10px 12px;
+  border-left:3px solid #246BFD;
+  border-radius:8px;
+  background:#EAF3FF;
+  color:#0B1F3A;
+  line-height:1.45;
+}
+.governance-state-note strong{
+  display:block;
+  font-size:13px;
+  font-weight:800;
+}
+.governance-state-note span{
+  display:block;
+  margin-top:3px;
+  color:#64748B;
+  font-size:12px;
+}
+</style>
+
+
+<style id="solifan-governance-transition-note-v2">
+.governance-state-note{
+  margin-top:12px !important;
+  padding:10px 12px !important;
+  border:1px solid #D8E2F0 !important;
+  border-left:3px solid #246BFD !important;
+  border-radius:8px !important;
+  background:#EAF3FF !important;
+  color:#0B1F3A !important;
+  line-height:1.45 !important;
+}
+.governance-state-note strong{
+  display:block;
+  font-size:13px;
+  font-weight:800;
+  color:#0B1F3A;
+}
+.governance-state-note span{
+  display:block;
+  margin-top:3px;
+  font-size:12px;
+  font-weight:400;
+  color:#64748B;
+}
+</style>
+
 </head>
 <body>
 <header>
@@ -124,7 +341,7 @@ label{display:block;font-size:12px;font-weight:700;color:#475569}
         </div>
       </div>
       <div class="actions">
-        <button class="warn" onclick="uploadEvidence()">Upload and reassess</button>
+        <button onclick="uploadEvidence()">Upload and reassess</button>
       </div>
       <div id="evidenceResult" class="result">
         No new evidence submitted from this workspace.
@@ -190,11 +407,11 @@ label{display:block;font-size:12px;font-weight:700;color:#475569}
         <button type="button" id="publishButton" class="warn" onclick="publishProposal()">Explicit Publish</button>
         <button type="button" id="activateButton" class="success" onclick="activateReady()">Activate READY</button>
       </div>
-      <div id="decisionResult" class="result">No human action performed in this session.</div>
-      <p class="note">
-        Approval does not change Current.
-        Explicit Publish is a separate state transition.
-      </p>
+      <div id="decisionResult" class="result"><span class="solifan-result-title">No human action in this session</span><span class="solifan-result-caption">Review, boundary editing, approval, and publication results appear here.</span></div>
+      <div class="governance-state-note">
+        <strong>Approval and publication are separate governed transitions.</strong>
+        <span>Approval records the human decision. Only Explicit Publish changes Current.</span>
+      </div>
     </section>
 
     <section class="card">
@@ -228,7 +445,7 @@ label{display:block;font-size:12px;font-weight:700;color:#475569}
           Test Analysis Identity A
         </button>
       </div>
-      <div id="executionResult" class="result">No action requested in this session.</div>
+      <div id="executionResult" class="result"><span class="solifan-result-title">No protected action in this session</span><span class="solifan-result-caption">Permission, execution, or denial results appear here.</span></div>
       <p class="note">
         The deterministic gate decides whether the request is permitted.
         Executor Identity B revalidates before protected execution.
@@ -813,5 +1030,7 @@ async function boot(){
 }
 boot();
 </script>
+
+
 </body>
 </html>

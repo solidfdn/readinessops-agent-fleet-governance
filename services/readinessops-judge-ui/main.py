@@ -278,6 +278,162 @@ pre{white-space:pre-wrap;word-break:break-word;background:#0f172a;color:#e2e8f0;
 .probe-proof.denied{background:#111827;color:#fecaca;border:1px solid #ef4444}
 @media(max-width:900px){.grid{grid-template-columns:1fr}.kv{grid-template-columns:1fr}}
 </style>
+
+<style id="solifan-readinessops-ui-v2">
+:root{
+  --solifan-navy:#0B1F3A;
+  --solifan-blue:#246BFD;
+  --solifan-blue-soft:#EAF3FF;
+  --solifan-border:#D8E2F0;
+  --solifan-muted:#64748B;
+  --solifan-surface:#FFFFFF;
+  --solifan-page:#F8FAFC;
+  --solifan-success-bg:#DCFCE7;
+  --solifan-success:#166534;
+  --solifan-warning-bg:#FFF7E6;
+  --solifan-danger-bg:#FEE2E2;
+  --solifan-danger:#B42318;
+}
+
+/* Quiet, SOLIFAN-like surface language */
+body{
+  background:var(--solifan-page) !important;
+  color:var(--solifan-navy) !important;
+}
+header,
+.topbar,
+.app-header,
+.page-header{
+  background:var(--solifan-surface) !important;
+  color:var(--solifan-navy) !important;
+  border-bottom:1px solid var(--solifan-border) !important;
+  box-shadow:none !important;
+}
+header h1, header h2, header h3,
+.topbar h1, .app-header h1, .page-header h1{
+  color:var(--solifan-navy) !important;
+}
+header p, header small,
+.topbar p, .app-header p, .page-header p{
+  color:var(--solifan-muted) !important;
+}
+
+.card,
+.panel,
+section.card,
+[class~="card"]{
+  background:var(--solifan-surface) !important;
+  border-color:var(--solifan-border) !important;
+  box-shadow:none !important;
+}
+
+h1,h2,h3,h4{
+  color:var(--solifan-navy);
+}
+
+button,
+.btn{
+  border-radius:8px !important;
+  box-shadow:none !important;
+  min-height:36px;
+  font-weight:700;
+}
+
+/* Separate control from outcome. */
+.actions,
+.button-row,
+.button-group{
+  gap:10px !important;
+  margin-top:14px !important;
+  margin-bottom:16px !important;
+  align-items:center !important;
+}
+
+/* Result is a status card, not a console. */
+.result,
+.result-box,
+.status-output,
+.proof-result{
+  margin-top:14px !important;
+  padding:13px 15px !important;
+  min-height:58px !important;
+  background:#F8FBFF !important;
+  color:var(--solifan-navy) !important;
+  border:1px solid var(--solifan-border) !important;
+  border-radius:10px !important;
+  box-shadow:none !important;
+  line-height:1.45 !important;
+}
+
+/* Works even when the legacy result container has no stable class. */
+*:has(> .solifan-result-title){
+  margin-top:14px !important;
+  padding:13px 15px !important;
+  min-height:58px !important;
+  background:#F8FBFF !important;
+  color:var(--solifan-navy) !important;
+  border:1px solid var(--solifan-border) !important;
+  border-radius:10px !important;
+  box-shadow:none !important;
+  line-height:1.45 !important;
+}
+
+.solifan-result-title{
+  display:block;
+  font-size:14px;
+  font-weight:800;
+  color:var(--solifan-navy);
+}
+.solifan-result-caption{
+  display:block;
+  margin-top:4px;
+  font-size:12px;
+  font-weight:400;
+  color:var(--solifan-muted);
+}
+
+.result details,
+.result-box details,
+*:has(> .solifan-result-title) details{
+  margin-top:8px !important;
+}
+
+details{
+  border-color:var(--solifan-border) !important;
+  box-shadow:none !important;
+}
+
+input, textarea, select{
+  border-color:#C7D5E8 !important;
+  border-radius:8px !important;
+  box-shadow:none !important;
+}
+input:focus, textarea:focus, select:focus{
+  outline:none !important;
+  border-color:var(--solifan-blue) !important;
+  box-shadow:0 0 0 2px rgba(36,107,253,.10) !important;
+}
+
+/* Keep semantic status colors soft. */
+.success,
+.status-success,
+.pill.success{
+  background:var(--solifan-success-bg) !important;
+  color:var(--solifan-success) !important;
+}
+.danger,
+.status-danger,
+.pill.danger{
+  background:var(--solifan-danger-bg) !important;
+  color:var(--solifan-danger) !important;
+}
+
+/* Never let an empty/probe placeholder dominate the card. */
+.solifan-proof-idle{
+  max-width:680px;
+}
+</style>
+
 </head>
 <body>
 <header>
@@ -293,7 +449,7 @@ pre{white-space:pre-wrap;word-break:break-word;background:#0f172a;color:#e2e8f0;
 
   <div class="lifecycle">
     <strong>Governed recovery path:</strong>
-    Evidence change → Automatic SUSPEND → Human-published Boundary v2 → READY in reduced scope
+    Evidence change → Automatic SUSPEND → Human review → Explicit Publish → READY in reduced scope
   </div>
 
   <div class="grid">
@@ -342,7 +498,7 @@ pre{white-space:pre-wrap;word-break:break-word;background:#0f172a;color:#e2e8f0;
       </div>
       <div class="section">
         <b>Live Analysis Identity A proof</b>
-        <pre id="probeResult" class="probe-proof">Click “Run Analysis Identity A probe”.</pre>
+        <pre id="probeResult" class="probe-proof"><span class="solifan-result-title">Analysis Identity isolation</span><span class="solifan-result-caption">Run the probe to verify that Analysis Runtime A cannot execute protected actions.</span></pre>
       </div>
     </section>
   </div>
