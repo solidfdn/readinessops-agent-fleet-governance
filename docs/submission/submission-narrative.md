@@ -102,7 +102,7 @@ Evidence upload
 → human review
 → approval without publication
 → explicit publication
-→ Delegation Boundary v2
+→ Delegation Boundary v3
 → READY reactivation
 → deterministic action gate
 → Analysis Identity denied
@@ -220,3 +220,33 @@ It demonstrates that:
 3. actual execution permissions can be isolated from analytical capability,
 4. changing evidence can automatically suspend unsafe operation,
 5. and the full decision-to-execution path can remain auditable.
+
+## Verified Governance Workspace
+
+ReadinessOps now includes an authenticated Governance Workspace for operators,
+in addition to the read-only Judge Console.
+
+The verified Google Cloud lifecycle is:
+
+Evidence upload
+→ event-driven reassessment
+→ automatic SUSPEND on material safety change
+→ Gemini / ADK-generated Decision Packs and proposed boundary
+→ Human Review and boundary editing
+→ Approve without changing Current
+→ Explicit Publish
+→ Published Delegation Boundary v3
+→ READY reactivation
+→ deterministic protected-action gating
+→ Executor Identity B execution.
+
+The verified run demonstrated:
+
+- `route_standard_case` → PERMITTED → EXECUTED
+- `route_hardship_case_to_human_review` → DENIED
+- Analysis Identity A → DENIED / HTTP 403
+- Executor Identity B → EXECUTED
+- Workspace and Judge Console reading the same governed Firestore state
+- Cloud Run Workspace runtime executing as non-root UID 10001
+
+The hackathon validation uses synthetic text evidence.

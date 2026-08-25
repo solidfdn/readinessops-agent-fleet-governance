@@ -58,7 +58,7 @@
 - [ ] Google Cloud Console or Cloud Run proof
 - [ ] READY to SUSPENDED
 - [ ] Approve does not publish
-- [ ] Delegation Boundary v2
+- [x] Delegation Boundary v3
 - [ ] Analysis Identity denied
 - [ ] Executor Identity executed
 - [ ] Model Armor blocked case
