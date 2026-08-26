@@ -78,57 +78,26 @@ ReadinessOps maintains a governed lifecycle for enterprise agents:
 
 ## Why This Requires an Agent Fleet
 
-The workflow separates distinct responsibilities:
+The workflow separates responsibilities that should not collapse into one model response:
 
-- Evidence Impact Agent:
-  determines how new evidence changes the governed safety basis.
+- **Evidence Worker + Impact:** authenticates the event, applies Model Armor first, and establishes how the new evidence changes the governed safety basis.
+- **Governance Agent:** proposes gaps, risks, controls, and required actions.
+- **Value & Portfolio Agent:** proposes value metrics, proceed / hold / stop decisions, and conditions before expansion.
+- **Model Routing Agent:** separates delegable work from work requiring human judgment.
+- **Parallel Specialist Reassessment:** Governance, Value & Portfolio, and Model Routing run concurrently after Evidence Impact is established.
+- **Reassessment Synthesizer:** combines the specialist outputs into the four Decision Packs and proposed Delegation Boundary while remaining REVIEW_REQUIRED and NOT_PUBLISHED.
+- **Human Control:** review, boundary editing, approval, and Explicit Publish define the official governed state.
+- **Execution Plane:** the deterministic gate enforces the published boundary. Analysis Identity A cannot execute; separate Executor Identity B is the only identity capable of permitted protected execution.
 
-- Governance Agent:
-  proposes gaps, risks, controls, and required actions.
-
-- Value and Portfolio Agent:
-  proposes value metrics, proceed / hold / stop decisions, and conditions
-  before expansion.
-
-- Model Routing Agent:
-  separates delegable work from work requiring human judgment.
-
-- Governance Orchestrator:
-  consolidates the four decision packs but cannot approve, publish, or execute.
-
-- Action Executor:
-  performs deterministic revalidation and protected execution under a separate
-  Agent Identity.
-
-This separation prevents a single model response from becoming an operational
-decision or execution permission.
+This separation prevents a single model response from becoming an operational decision or execution permission.
 
 ## Verified Golden Path
 
 The following path has been executed in the Google Cloud hackathon environment:
 
-Evidence upload
-→ Cloud Storage OBJECT_FINALIZE
-→ Pub/Sub
-→ authenticated private Cloud Run worker
-→ Model Armor
-→ governed revision
-→ multi-agent reassessment
-→ READY to SUSPENDED
-→ four decision packs
-→ deterministic grounding validation
-→ REVIEW_REQUIRED proposal
-→ human review
-→ approval without publication
-→ explicit publication
-→ Versioned Delegation Boundary
-→ READY reactivation
-→ deterministic action gate
-→ Analysis Identity denied
-→ Executor Identity permitted
-→ Agent Gateway
-→ protected Pub/Sub action
-→ end-to-end trace
+Evidence upload → Cloud Storage OBJECT_FINALIZE → Pub/Sub → authenticated private Cloud Run worker → Model Armor → governed Revision + Evidence Impact → Parallel Specialist Agents → Reassessment Synthesizer → deterministic grounding validation → READY to SUSPENDED → REVIEW_REQUIRED / NOT_PUBLISHED → human review → approval without publication → Explicit Publish → Published Delegation Boundary → READY reactivation → deterministic action gate → unauthorized action DENIED → Analysis Identity A DENIED / HTTP 403 → one end-to-end governance trace.
+
+A separate verified execution path demonstrated that a permitted protected action can execute only through Executor Identity B.
 
 ## Verified Safety Behaviors
 
@@ -225,8 +194,6 @@ New work includes:
 - A general-purpose PDF parsing pipeline is not part of the submitted build.
 - Production enterprise connectors are intentionally deferred.
 - Firestore is used as the official governance record for this implementation.
-- The judge-facing English UI is being finalized as a presentation layer over
-  the verified backend workflow.
 
 ## Primary Submission Claims
 
@@ -331,20 +298,19 @@ Environment-specific IAM bindings and credentials are not embedded in this repos
 1. Upload new synthetic evidence to the governed Cloud Storage path.
 2. Pub/Sub delivers the OBJECT_FINALIZE event to the private evidence worker.
 3. Model Armor evaluates the evidence before any LLM processing.
-4. Safe evidence creates a governed Revision in Firestore.
-5. Multi-agent reassessment produces four Decision Packs.
-6. Material safety drift transitions the agent from READY to SUSPENDED.
-7. The resulting proposal remains REVIEW_REQUIRED and NOT_PUBLISHED.
-8. A human reviews and edits the proposed Delegation Boundary.
-9. Approval alone leaves Current unchanged.
-10. Explicit publication creates a new active Delegation Boundary.
-11. READY can be restored only against that published boundary.
-12. The deterministic execution gate evaluates protected actions.
-13. Analysis Identity A is denied protected execution.
-14. Executor Identity B revalidates and executes only permitted actions.
-15. A common Trace ID connects evidence, human decisions, and execution.
-
----
+4. Safe evidence creates a governed Revision and Evidence Impact result in Firestore.
+5. Agent Runtime A runs Governance, Value & Portfolio, and Model Routing specialists in parallel.
+6. The Reassessment Synthesizer produces four Decision Packs and a proposed Delegation Boundary.
+7. Material safety drift transitions the agent from READY to SUSPENDED.
+8. The resulting proposal remains REVIEW_REQUIRED and NOT_PUBLISHED.
+9. A human reviews and edits the proposed Delegation Boundary.
+10. Approval alone leaves Current unchanged.
+11. Explicit publication creates a new active versioned Delegation Boundary.
+12. READY can be restored only against that published boundary.
+13. The deterministic gate evaluates protected-action requests.
+14. Actions outside the published boundary are denied even when the agent is READY.
+15. Analysis Identity A cannot execute protected actions; permitted execution is reserved for separate Executor Identity B.
+16. One governance Trace ID connects evidence, revision, proposal, human decision, publication, action request, and enforcement outcome.
 
 ## What Judges Can Verify
 
@@ -363,30 +329,21 @@ Environment-specific IAM bindings and credentials are not embedded in this repos
 
 ## Verified Governance Workspace
 
-ReadinessOps now includes an authenticated Governance Workspace for operators,
-in addition to the read-only Judge Console.
+ReadinessOps includes an authenticated Governance Workspace for operators, in addition to the read-only Judge Console.
 
-The verified Google Cloud lifecycle is:
+The final production recording demonstrates:
 
-Evidence upload
-→ event-driven reassessment
-→ automatic SUSPEND on material safety change
-→ Gemini / ADK-generated Decision Packs and proposed boundary
-→ Human Review and boundary editing
-→ Approve without changing Current
-→ Explicit Publish
-→ Published Delegation Boundary
-→ READY reactivation
-→ deterministic protected-action gating
-→ Executor Identity B execution.
+- material safety evidence → READY to SUSPENDED,
+- the AI proposal remains REVIEW_REQUIRED / NOT_PUBLISHED until human governance completes,
+- Human Review and boundary editing,
+- Approval without changing Current,
+- Explicit Publish creating the new official Published Delegation Boundary,
+- READY reactivation only against that newly published boundary,
+- `route_standard_case` → DENIED outside the active Published Delegation Boundary,
+- Analysis Identity A → DENIED / HTTP 403,
+- Workspace and Judge Console reading the same governed Firestore state,
+- Cloud Run Workspace runtime executing as non-root UID 10001.
 
-The verified run demonstrated:
-
-- `route_standard_case` → PERMITTED → EXECUTED
-- `route_hardship_case_to_human_review` → DENIED
-- Analysis Identity A → DENIED / HTTP 403
-- Executor Identity B → EXECUTED
-- Workspace and Judge Console reading the same governed Firestore state
-- Cloud Run Workspace runtime executing as non-root UID 10001
+A separate earlier verified path demonstrated permitted protected execution through Executor Identity B. The final submission recording intentionally emphasizes the stricter fail-closed enforcement path.
 
 The hackathon validation uses synthetic text evidence.
