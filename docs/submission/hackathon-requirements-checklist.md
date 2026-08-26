@@ -56,9 +56,9 @@
 - [ ] Architecture overview
 - [ ] Unedited proof of action
 - [ ] Google Cloud Console or Cloud Run proof
-- [ ] READY to SUSPENDED
+- [x] READY to SUSPENDED
 - [ ] Approve does not publish
-- [x] Delegation Boundary v3
+- [x] Versioned Delegation Boundary
 - [ ] Analysis Identity denied
 - [ ] Executor Identity executed
 - [ ] Model Armor blocked case
