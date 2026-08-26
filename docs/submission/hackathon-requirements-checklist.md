@@ -33,7 +33,7 @@
 - [ ] Human control plane shown
 - [ ] Analysis / execution identity separation shown
 - [ ] Agent Gateway shown
-- [ ] Model Armor shown
+- [x] Model Armor shown
 - [ ] Firestore official record shown
 - [ ] End-to-end trace shown
 
@@ -59,7 +59,7 @@
 - [x] READY to SUSPENDED
 - [ ] Approve does not publish
 - [x] Versioned Delegation Boundary
-- [ ] Analysis Identity denied
+- [x] Analysis Identity denied
 - [ ] Executor Identity executed
 - [ ] Model Armor blocked case
 - [ ] Pub/Sub message ID
