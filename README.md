@@ -4,6 +4,22 @@
 
 > **AI proposes. People decide. Publication defines the official state. Published boundaries control execution.**
 
+<!-- READINESSOPS_VISUAL_OVERVIEW_START -->
+<p align="center">
+  <strong>Evidence changes → automatic SUSPEND → AI proposal → human review → explicit publication → governed execution</strong>
+</p>
+
+<p align="center">
+  <a href="#governed-workflow-in-action">Governed workflow</a> ·
+  <a href="#enforcement-proof">Enforcement proof</a> ·
+  <a href="#architecture">Architecture</a>
+</p>
+
+![ReadinessOps Governance Workspace and Judge Console](docs/assets/readinessops-hero.png)
+
+> **ReadinessOps turns changing evidence into governed agent state.** AI proposes; people review and explicitly publish; deterministic gates enforce the active Delegation Boundary.
+<!-- READINESSOPS_VISUAL_OVERVIEW_END -->
+
 ## Core Category
 
 Fortified Enterprise Fleet
@@ -226,7 +242,25 @@ It demonstrates that:
 
 ---
 
+<!-- READINESSOPS_WORKFLOW_VISUALS_START -->
+## Governed workflow in action
+
+A material change suspends the affected agent before a new AI proposal can become official. Human review remains available, but execution and READY reactivation stay closed until the revised boundary is explicitly published.
+
+![ReadinessOps governed workflow](docs/assets/readinessops-governed-workflow.png)
+
+## Enforcement proof
+
+The published Delegation Boundary controls execution. An unauthorized action is denied, and the analysis identity independently proves that it cannot reach protected execution.
+
+![ReadinessOps enforcement proof](docs/assets/readinessops-enforcement-proof.png)
+<!-- READINESSOPS_WORKFLOW_VISUALS_END -->
+
 ## Architecture
+
+<!-- READINESSOPS_ARCHITECTURE_VISUAL_START -->
+![ReadinessOps architecture](docs/assets/readinessops-architecture.png)
+<!-- READINESSOPS_ARCHITECTURE_VISUAL_END -->
 
 
 ReadinessOps separates evidence ingestion, AI analysis, human governance,
