@@ -2,13 +2,13 @@
   "theme": "base",
   "flowchart": {"curve": "linear", "nodeSpacing": 24, "rankSpacing": 34},
   "themeVariables": {
-    "fontFamily": "Arial, sans-serif",
-    "primaryColor": "#F8FAFC",
-    "primaryBorderColor": "#1E3A8A",
-    "primaryTextColor": "#0F172A",
-    "lineColor": "#64748B",
+    "fontFamily": "Meiryo UI, Segoe UI, Arial, sans-serif",
+    "primaryColor": "#FFFFFF",
+    "primaryBorderColor": "#246BFD",
+    "primaryTextColor": "#0B1F3A",
+    "lineColor": "#8DA0B8",
     "clusterBkg": "#FFFFFF",
-    "clusterBorder": "#CBD5E1"
+    "clusterBorder": "#D8E2F0"
   }
 }}%%
 
@@ -19,7 +19,7 @@ direction TB
 U[Evidence Upload]
 G[Cloud Storage]
 P[Pub/Sub]
-W[Private Cloud Run<br/>Evidence Worker]
+W[Private Cloud Run<br/>Evidence Worker + Impact]
 M{Model Armor}
 B[BLOCKED<br/>No Revision / No LLM]
 R[Governed Revision]
@@ -31,8 +31,8 @@ end
 subgraph A["2  Analysis & Governance — Identity A"]
 direction TB
 O[Agent Runtime A<br/>Governance Orchestrator]
-S[Specialized Agents<br/>Evidence Impact · Governance<br/>Value & Portfolio · Model Routing]
-D[Four Decision Packs]
+S[Parallel Specialist Agents<br/>Governance · Value & Portfolio · Model Routing]
+D[Reassessment Synthesizer<br/>Four Decision Packs]
 V[Deterministic<br/>Grounding Validation]
 Q[REVIEW_REQUIRED<br/>NOT_PUBLISHED]
 O --> S --> D --> V --> Q
@@ -79,11 +79,11 @@ T -.-> R
 T -.-> HR
 T -.-> ACT
 
-classDef security fill:#FFF7ED,stroke:#C2410C,color:#7C2D12;
-classDef blocked fill:#FEF2F2,stroke:#B91C1C,color:#7F1D1D;
-classDef governance fill:#EFF6FF,stroke:#1D4ED8,color:#172554;
-classDef human fill:#F8FAFC,stroke:#475569,color:#0F172A;
-classDef execution fill:#ECFDF5,stroke:#047857,color:#064E3B;
+classDef security fill:#F7FAFF,stroke:#9ABCF2,color:#0B1F3A;
+classDef blocked fill:#F8FAFC,stroke:#A8B6C8,color:#0B1F3A;
+classDef governance fill:#EAF3FF,stroke:#246BFD,color:#0B1F3A;
+classDef human fill:#FFFFFF,stroke:#AFC7EA,color:#0B1F3A;
+classDef execution fill:#F7FAFF,stroke:#8FB8FF,color:#0B1F3A;
 
 class M security;
 class B,DN blocked;

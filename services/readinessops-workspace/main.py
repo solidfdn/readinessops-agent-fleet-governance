@@ -1,3 +1,4 @@
+from flask import send_file
 import os
 import re
 from datetime import datetime, timezone
@@ -53,6 +54,14 @@ DEFAULT_ACTOR = os.getenv(
 )
 
 app = Flask(__name__)
+
+@app.get("/workspace-mark")
+def workspace_mark():
+    return send_file(
+        "/app/static/solifan-workspace-mark.png",
+        mimetype="image/png",
+    )
+
 app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
 
 
@@ -583,31 +592,84 @@ def activate():
     agent = _doc(db, "agents", agent_id)
     target_agent = agent.get("target_agent") or agent.get("name")
 
-    # Activation is governed by the official Published Current state,
-    # not by a UI-held proposal reference.
-    current = _doc(db, "current_states", agent_id)
-    proposal = _doc(db, "proposals", data.get("proposal_id"))
-
-    publication_id = (
-        current.get("publication_id")
-        or data.get("publication_id")
-        or proposal.get("publication_id")
-    )
-    revision_id = (
-        current.get("revision_id")
-        or data.get("revision_id")
-        or proposal.get("revision_id")
+    # Activation is governed only by the official Published Current state.
+    # Never reactivate a suspension caused by a newer reassessment revision
+    # against an older Published Boundary.
+    current = (
+        _doc(db, "current_states", target_agent)
+        if target_agent
+        else {}
     )
 
-    if not all([target_agent, publication_id, revision_id]):
+    # Backward-compatible fallback for older records only.
+    if not current:
+        current = _doc(db, "current_states", agent_id)
+
+    requested_proposal_id = data.get("proposal_id")
+    proposal = _doc(db, "proposals", requested_proposal_id)
+
+    current_proposal_id = current.get("proposal_id")
+    publication_id = current.get("publication_id")
+    revision_id = current.get("revision_id")
+
+    if not all(
+        [
+            target_agent,
+            current_proposal_id,
+            publication_id,
+            revision_id,
+        ]
+    ):
         return jsonify(
             {
                 "error": (
-                    "Published proposal, publication, and revision "
-                    "are required."
+                    "Official Published Current is incomplete. "
+                    "READY activation is denied."
                 )
             }
-        ), 400
+        ), 409
+
+    if requested_proposal_id != current_proposal_id:
+        return jsonify(
+            {
+                "error": (
+                    "READY activation is denied because the requested "
+                    "proposal is not the official Published Current."
+                )
+            }
+        ), 409
+
+    if (
+        proposal.get("proposal_status") != "PUBLISHED"
+        or proposal.get("publication_status") != "PUBLISHED"
+    ):
+        return jsonify(
+            {
+                "error": (
+                    "READY activation requires an explicitly published "
+                    "proposal."
+                )
+            }
+        ), 409
+
+    suspension_revision_id = agent.get("suspension_revision_id")
+
+    if (
+        agent.get("readiness_status") == "SUSPENDED"
+        and suspension_revision_id
+        and (
+            revision_id != suspension_revision_id
+            or proposal.get("revision_id") != suspension_revision_id
+        )
+    ):
+        return jsonify(
+            {
+                "error": (
+                    "READY activation is denied while a newer safety "
+                    "reassessment remains unpublished."
+                )
+            }
+        ), 409
 
     try:
         result = activate_ready_state(

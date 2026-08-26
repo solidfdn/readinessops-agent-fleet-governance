@@ -1,4 +1,5 @@
 import json
+import os
 from uuid import uuid4
 
 import google.auth
@@ -6,10 +7,29 @@ import requests
 from google.auth.transport.requests import Request
 
 
-PROJECT_ID = "readinessops-agent-governance"
-PROJECT_NUMBER = "649947189508"
-LOCATION = "asia-northeast1"
-GOVERNANCE_RUNTIME_ID = "2493591216726212608"
+PROJECT_ID = os.getenv(
+    "GOOGLE_CLOUD_PROJECT",
+    "readinessops-agent-governance",
+)
+PROJECT_NUMBER = os.getenv(
+    "READINESSOPS_PROJECT_NUMBER",
+    "649947189508",
+)
+LOCATION = os.getenv(
+    "GOOGLE_CLOUD_REGION",
+    "asia-northeast1",
+)
+GOVERNANCE_RUNTIME_ID = os.getenv(
+    "READINESSOPS_GOVERNANCE_RUNTIME_ID",
+    "2493591216726212608",
+)
+
+GOVERNANCE_TIMEOUT_SECONDS = float(
+    os.getenv(
+        "READINESSOPS_GOVERNANCE_TIMEOUT_SECONDS",
+        "150",
+    )
+)
 
 A2A_URL = (
     f"https://{LOCATION}-aiplatform.googleapis.com/"
@@ -86,15 +106,17 @@ Perform a ReadinessOps reassessment for {target_agent}.
 
 This is triggered asynchronously by new evidence.
 
-Use your specialist agents for:
-- evidence impact
+Evidence impact has ALREADY been established by the Evidence Worker and is
+supplied below. Do not repeat evidence-impact analysis.
+
+Run independent specialist analysis for:
 - governance
 - value realization / portfolio
-- model routing
-- action implications
+- model routing and the proposed Delegation Boundary
 
-Return one structured GovernedAssessmentProposal containing all four
-Decision Packs and the proposed Delegation Boundary.
+Then synthesize one structured GovernedAssessmentProposal containing all four
+Decision Packs, the proposed Delegation Boundary, and the required action field.
+The action field describes an implication only; it never authorizes execution.
 
 Rules:
 - AI proposes only.
@@ -140,7 +162,7 @@ EVIDENCE IMPACT:
                 }
             },
         },
-        timeout=300,
+        timeout=GOVERNANCE_TIMEOUT_SECONDS,
     )
 
     response.raise_for_status()

@@ -45,8 +45,7 @@ ReadinessOps maintains a governed lifecycle for enterprise agents:
 1. New evidence arrives asynchronously.
 2. Model Armor checks the evidence before LLM processing.
 3. A private evidence worker creates a governed revision.
-4. Specialized agents reassess evidence impact, governance, value,
-   routing, and portfolio implications.
+4. The Evidence Worker establishes evidence impact first. Agent Runtime A then runs Governance, Value & Portfolio, and Model Routing specialists in parallel, followed by a Reassessment Synthesizer.
 5. Material safety drift suspends the affected agent.
 6. AI output remains REVIEW_REQUIRED and NOT_PUBLISHED.
 7. A human reviews and edits the proposed delegation boundary.
@@ -102,7 +101,7 @@ Evidence upload
 → human review
 → approval without publication
 → explicit publication
-→ Delegation Boundary v3
+→ Versioned Delegation Boundary
 → READY reactivation
 → deterministic action gate
 → Analysis Identity denied
@@ -235,7 +234,7 @@ Evidence upload
 → Human Review and boundary editing
 → Approve without changing Current
 → Explicit Publish
-→ Published Delegation Boundary v3
+→ Published Delegation Boundary
 → READY reactivation
 → deterministic protected-action gating
 → Executor Identity B execution.

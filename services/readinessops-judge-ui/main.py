@@ -65,11 +65,11 @@ def health():
     }
 
 
-@app.get("/architecture.png")
+@app.get("/architecture")
 def architecture():
     return send_file(
-        "/app/static/readinessops-architecture.png",
-        mimetype="image/png",
+        "/app/static/readinessops-architecture.html",
+        mimetype="text/html",
     )
 
 
@@ -79,7 +79,25 @@ def api_state():
     db = _db()
 
     agent = _doc(db, "agents", agent_id)
-    current = _doc(db, "current_states", agent_id)
+
+    target_agent = (
+        agent.get("target_agent")
+        or agent.get("name")
+        or agent_id
+    )
+
+    target_slug = (
+        str(target_agent)
+        .strip()
+        .lower()
+        .replace(" ", "-")
+    )
+
+    current = _doc(
+        db,
+        "current_states",
+        target_slug,
+    )
 
     revision_id = current.get("revision_id") or agent.get("current_revision_id")
     proposal_id = current.get("proposal_id")
@@ -106,10 +124,13 @@ def api_state():
         (x for x in events if x.get("event_id") == trace_id),
         {},
     )
-    blocked_event = next(
-        (x for x in events if x.get("status") == "BLOCKED"),
-        {},
-    )
+    security_event = trace_event or {}
+
+    if (
+        security_event.get("status") != "BLOCKED"
+        and security_event.get("security_status") != "BLOCKED"
+    ):
+        security_event = trace_event or {}
 
     trace_actions = [x for x in actions if x.get("trace_id") == trace_id]
     executed_action = next(
@@ -126,7 +147,7 @@ def api_state():
 
     payload = proposal.get("proposal") or {}
     evidence_impact = revision.get("evidence_impact") or {}
-    armor = blocked_event.get("model_armor") or {}
+    armor = security_event.get("model_armor") or {}
 
     pack_names = [
         key
@@ -186,7 +207,10 @@ def api_state():
                     "approval_separate_from_publication": approval_recorded and publication_recorded,
                 },
                 "security": {
-                    "status": blocked_event.get("security_status") or blocked_event.get("status"),
+                    "status": (
+                        security_event.get("security_status")
+                        or security_event.get("status")
+                    ),
                     "filter_match_state": armor.get("filter_match_state"),
                     "confidence_level": armor.get("confidence_level"),
                 },
@@ -258,9 +282,9 @@ main{max-width:1500px;margin:auto;padding:22px}
 .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
 button{border:0;border-radius:9px;padding:10px 14px;font-weight:700;cursor:pointer;background:#1d4ed8;color:#fff}
 button.secondary{background:#334155}
-.chip{display:inline-block;padding:5px 9px;border-radius:999px;background:#e2e8f0;font-size:12px;font-weight:800}
-.chip.good{background:#dcfce7;color:#166534}.chip.bad{background:#fee2e2;color:#991b1b}.chip.warn{background:#ffedd5;color:#9a3412}
-.lifecycle{margin:0 0 18px;padding:13px 16px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff;color:#1e3a8a;font-weight:750;font-size:14px}
+.chip{display:inline-block;padding:5px 9px;border-radius:999px;background:#e2e8f0;font-size:12px;font-weight:600}
+.chip.good{background:#EAF3FF;color:#0B1F3A;border:1px solid #BFDBFE}.chip.bad{background:#F8FAFC;color:#0B1F3A;border:1px solid #C7D5E8}.chip.warn{background:#F8FBFF;color:#64748B;border:1px solid #D8E2F0}
+.lifecycle{margin:0 0 18px;padding:13px 16px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff;color:#1e3a8a;font-weight:600;font-size:14px}
 .lifecycle strong{color:#172554}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:18px;box-shadow:0 1px 2px rgba(15,23,42,.05)}
@@ -273,10 +297,64 @@ button.secondary{background:#334155}
 .event{border-left:3px solid #cbd5e1;padding:8px 10px;margin:8px 0;background:#f8fafc}
 .event b{font-size:13px}.event small{display:block;color:#64748b;margin-top:3px}
 .arch{width:100%;border:1px solid #e2e8f0;border-radius:10px;background:#fff}
-pre{white-space:pre-wrap;word-break:break-word;background:#0f172a;color:#e2e8f0;border-radius:9px;padding:12px;font-size:12px;max-height:260px;overflow:auto}
-.probe-proof{font-size:15px;font-weight:700;line-height:1.6}
-.probe-proof.denied{background:#111827;color:#fecaca;border:1px solid #ef4444}
+pre{
+  white-space:pre-wrap;
+  word-break:break-word;
+  background:#FFFFFF;
+  color:#0B1F3A;
+  border:1px solid #D8E2F0;
+  border-radius:8px;
+  padding:10px 12px;
+  font-size:11px;
+  font-weight:400;
+  line-height:1.55;
+  max-height:260px;
+  overflow:auto;
+  box-shadow:none;
+}
+.probe-proof{
+  white-space:pre-wrap;
+  word-break:break-word;
+  margin:10px 0 0;
+  padding:12px 14px;
+  min-height:58px;
+  background:#F8FBFF;
+  color:#0B1F3A;
+  border:1px solid #D8E2F0;
+  border-left:3px solid #246BFD;
+  border-radius:10px;
+  box-shadow:none;
+  font-size:13px;
+  font-weight:400;
+  line-height:1.55;
+}
+.probe-proof.denied{
+  background:#F8FBFF;
+  color:#0B1F3A;
+  border:1px solid #D8E2F0;
+  border-left:3px solid #246BFD;
+}
 @media(max-width:900px){.grid{grid-template-columns:1fr}.kv{grid-template-columns:1fr}}
+
+.solifan-screen-mark{
+  position:absolute;
+  top:18px;
+  right:22px;
+  width:64px;
+  height:auto;
+  z-index:20;
+  pointer-events:none;
+  user-select:none;
+}
+
+@media (max-width:900px){
+  .solifan-screen-mark{
+    top:14px;
+    right:16px;
+    width:52px;
+  }
+}
+
 </style>
 
 <style id="solifan-readinessops-ui-v2">
@@ -288,11 +366,11 @@ pre{white-space:pre-wrap;word-break:break-word;background:#0f172a;color:#e2e8f0;
   --solifan-muted:#64748B;
   --solifan-surface:#FFFFFF;
   --solifan-page:#F8FAFC;
-  --solifan-success-bg:#DCFCE7;
-  --solifan-success:#166534;
-  --solifan-warning-bg:#FFF7E6;
-  --solifan-danger-bg:#FEE2E2;
-  --solifan-danger:#B42318;
+  --solifan-success-bg:#EAF3FF;
+  --solifan-success:#0B1F3A;
+  --solifan-warning-bg:#F8FBFF;
+  --solifan-danger-bg:#F8FAFC;
+  --solifan-danger:#0B1F3A;
 }
 
 /* Quiet, SOLIFAN-like surface language */
@@ -336,7 +414,7 @@ button,
   border-radius:8px !important;
   box-shadow:none !important;
   min-height:36px;
-  font-weight:700;
+  font-weight:600;
 }
 
 /* Separate control from outcome. */
@@ -381,7 +459,7 @@ button,
 .solifan-result-title{
   display:block;
   font-size:14px;
-  font-weight:800;
+  font-weight:600;
   color:var(--solifan-navy);
 }
 .solifan-result-caption{
@@ -414,28 +492,55 @@ input:focus, textarea:focus, select:focus{
   box-shadow:0 0 0 2px rgba(36,107,253,.10) !important;
 }
 
-/* Keep semantic status colors soft. */
-.success,
+/* Status is communicated by wording and hierarchy,
+   not traffic-light colors. */
+.chip.good,
 .status-success,
 .pill.success{
   background:var(--solifan-success-bg) !important;
   color:var(--solifan-success) !important;
+  border:1px solid #BFDBFE !important;
 }
-.danger,
+
+.chip.warn{
+  background:var(--solifan-warning-bg) !important;
+  color:var(--solifan-muted) !important;
+  border:1px solid var(--solifan-border) !important;
+}
+
+.chip.bad,
 .status-danger,
-.pill.danger{
+.pill.danger,
+.danger{
   background:var(--solifan-danger-bg) !important;
   color:var(--solifan-danger) !important;
+  border:1px solid #C7D5E8 !important;
 }
 
 /* Never let an empty/probe placeholder dominate the card. */
 .solifan-proof-idle{
   max-width:680px;
 }
+
+.proof-label{
+  color:var(--solifan-muted);
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:.01em;
+}
+
+.probe-proof .solifan-result-title{
+  font-weight:600;
+}
+
+.probe-proof .solifan-result-caption{
+  font-weight:400;
+}
 </style>
 
 </head>
 <body>
+<img class="solifan-screen-mark" src="/static/solifan-judge-mark.png" alt="" aria-hidden="true">
 <header>
   <h1>ReadinessOps — Judge Console</h1>
   <p>Evidence-driven governance and identity-isolated execution on Google Cloud.</p>
@@ -497,8 +602,8 @@ input:focus, textarea:focus, select:focus{
         <div class="k"></div><div class="note">Outside automated boundary — manual handling required</div>
       </div>
       <div class="section">
-        <b>Live Analysis Identity A proof</b>
-        <pre id="probeResult" class="probe-proof"><span class="solifan-result-title">Analysis Identity isolation</span><span class="solifan-result-caption">Run the probe to verify that Analysis Runtime A cannot execute protected actions.</span></pre>
+        <div class="proof-label">Live Analysis Identity A proof</div>
+        <div id="probeResult" class="probe-proof"><span class="solifan-result-title">Analysis Identity isolation</span><span class="solifan-result-caption">Run the probe to verify that Analysis Runtime A cannot execute protected actions.</span></div>
       </div>
     </section>
   </div>
@@ -510,7 +615,7 @@ input:focus, textarea:focus, select:focus{
 
   <section class="card section">
     <h2>Architecture</h2>
-    <img class="arch" src="/architecture.png" alt="ReadinessOps architecture">
+    <iframe src="/architecture" title="ReadinessOps architecture" style="display:block;width:100%;aspect-ratio:16/9;border:0;border-radius:12px;background:#FFFFFF;overflow:hidden;"></iframe>
   </section>
 </main>
 
@@ -585,18 +690,54 @@ async function runProbe(){
   box.className="probe-proof";
   box.textContent="Running protected-action probe from Analysis Identity A…";
 
-  const r=await fetch("/api/identity-a-probe",{method:"POST"});
-  const d=await r.json();
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),15000);
 
-  const outcome=d.outcome??"—";
-  const status=d.protected_http_status??"—";
-  const explanation=outcome==="DENIED"
-    ?"Analysis Identity cannot execute protected actions."
-    :"Unexpected probe result — review before demo.";
+  try{
+    const r=await fetch(
+      "/api/identity-a-probe",
+      {
+        method:"POST",
+        signal:controller.signal
+      }
+    );
 
-  box.className=outcome==="DENIED"?"probe-proof denied":"probe-proof";
-  box.textContent=`${outcome} · HTTP ${status}
+    const contentType=r.headers.get("content-type")||"";
+
+    if(!r.ok){
+      throw new Error(`Probe request failed · HTTP ${r.status}`);
+    }
+
+    if(!contentType.includes("application/json")){
+      throw new Error("Probe returned an unexpected response.");
+    }
+
+    const d=await r.json();
+
+    const outcome=d.outcome??"—";
+    const status=d.protected_http_status??"—";
+    const explanation=outcome==="DENIED"
+      ?"Analysis Identity cannot execute protected actions."
+      :"Unexpected probe result — review before demo.";
+
+    box.className=outcome==="DENIED"
+      ?"probe-proof denied"
+      :"probe-proof";
+
+    box.textContent=`${outcome} · HTTP ${status}
 ${explanation}`;
+  }catch(error){
+    box.className="probe-proof";
+
+    const message=error.name==="AbortError"
+      ?"Probe timed out. Please retry."
+      :error.message;
+
+    box.textContent=`Probe unavailable
+${message}`;
+  }finally{
+    clearTimeout(timer);
+  }
 }
 
 loadState().catch(e=>{

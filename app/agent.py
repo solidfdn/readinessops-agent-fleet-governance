@@ -3,9 +3,10 @@ import json
 import re
 
 from google.adk.agents import Agent
+from google.adk.agents.parallel_agent import ParallelAgent
+from google.adk.agents.sequential_agent import SequentialAgent
 from google.adk.apps import App
 from google.adk.models import Gemini
-from google.adk.tools.agent_tool import AgentTool
 from google.genai import types
 from .schemas import GovernedAssessmentProposal
 
@@ -37,28 +38,10 @@ def model():
     )
 
 
-evidence_impact_agent = Agent(
-    name="evidence_impact_agent",
-    model=model(),
-    description="Analyzes evidence changes and impact on governed current state.",
-    instruction="""
-You are the ReadinessOps Evidence & Impact Agent.
-
-Identify:
-- supplied facts
-- material evidence changes
-- affected controls, risks, actions, and delegation boundaries
-- unresolved information
-
-Never claim a current control or system configuration exists or is missing unless evidence proves it.
-Separate FACT / INFERENCE / UNRESOLVED.
-""" + GROUNDING_CONTRACT,
-)
-
-
 governance_agent = Agent(
     name="governance_agent",
     model=model(),
+    output_key="governance_analysis",
     description="Analyzes governance gaps, risks, controls, and required actions.",
     instruction="""
 You are the ReadinessOps Governance Agent.
@@ -80,6 +63,7 @@ Return UNRESOLVED and describe what evidence is needed.
 value_portfolio_agent = Agent(
     name="value_portfolio_agent",
     model=model(),
+    output_key="value_portfolio_analysis",
     description="Evaluates value realization and portfolio decisions.",
     instruction="""
 You are the ReadinessOps Value & Portfolio Agent.
@@ -114,6 +98,7 @@ Never present a PROPOSED_TARGET as an organizationally approved target.
 routing_agent = Agent(
     name="routing_agent",
     model=model(),
+    output_key="routing_analysis",
     description="Proposes the Delegation Boundary for an AI agent.",
     instruction="""
 You are the ReadinessOps Routing Agent.
@@ -136,64 +121,83 @@ The boundary is PROPOSED and INACTIVE until Human Approval + Explicit Publicatio
 )
 
 
-action_agent = Agent(
-    name="action_agent",
-    model=model(),
-    description="Handles governed action execution decisions.",
-    instruction="""
-You are the ReadinessOps Action Agent.
-
-Execution requires explicit proof of:
-- human approval
-- explicit publication
-- active Delegation Boundary
-- permitted action
-- target agent not SUSPENDED or NOT_READY
-
-If any item is absent or uncertain:
-DENIED
-
-Fail closed.
-Never infer approval or publication.
-""" + GROUNDING_CONTRACT,
+parallel_reassessment = ParallelAgent(
+    name="parallel_reassessment",
+    description=(
+        "Runs independent governance, value/portfolio, and routing analysis "
+        "concurrently after evidence impact has already been established."
+    ),
+    sub_agents=[
+        governance_agent,
+        value_portfolio_agent,
+        routing_agent,
+    ],
 )
 
-
-root_agent = Agent(
-    name="readinessops_orchestrator",
+synthesis_agent = Agent(
+    name="reassessment_synthesizer",
     model=model(),
-    description="Coordinates governed ReadinessOps assessments.",
+    description=(
+        "Synthesizes parallel specialist analyses into one governed "
+        "ReadinessOps reassessment proposal."
+    ),
     output_schema=GovernedAssessmentProposal,
+    output_key="governed_assessment_proposal",
     instruction="""
-You are the ReadinessOps Governance Orchestrator.
+You are the final ReadinessOps Reassessment Synthesizer.
 
-Principle:
-AI proposes. People decide. Publication changes official current state.
+The Evidence Worker has ALREADY completed evidence-impact analysis and supplied
+the result in the user request. Do not repeat evidence-impact analysis.
 
-For an assessment:
-1. Call evidence_impact_agent.
-2. Call governance_agent.
-3. Call value_portfolio_agent.
-4. Call routing_agent.
-5. Call action_agent.
-6. Consolidate their outputs.
+Use the original supplied:
+- PUBLISHED CURRENT
+- NEW EVIDENCE
+- EVIDENCE IMPACT
 
-You must preserve FACT / INFERENCE / UNRESOLVED distinctions.
+Also use these parallel specialist results:
 
-Set grounding_status to PENDING_VALIDATION.
-The application layer, not the model, performs final deterministic grounding validation.
-Do not claim that grounding validation has passed.
+GOVERNANCE ANALYSIS:
+{governance_analysis}
+
+VALUE / PORTFOLIO ANALYSIS:
+{value_portfolio_analysis}
+
+ROUTING ANALYSIS:
+{routing_analysis}
+
+Produce exactly one GovernedAssessmentProposal.
+
+Required semantics:
+- schema_version = readinessops.google.v1
+- proposal_status = REVIEW_REQUIRED
+- publication_status = NOT_PUBLISHED
+- AI proposes only.
+- Preserve FACT / INFERENCE / UNRESOLVED distinctions.
+- Never invent metrics, systems, URLs, queues, policies, or evidence.
+- Delegation Boundary remains PROPOSED and INACTIVE.
+- Human approval alone does not publish.
+- Never reactivate an agent.
+- Never execute a protected action.
+- The action field describes the proposed or denied action implication only;
+  it never authorizes execution.
+- grounding_status = PENDING_VALIDATION.
+- The application layer performs final deterministic grounding validation.
 
 Never approve.
 Never publish.
 Never alter official current state.
 """ + GROUNDING_CONTRACT,
-    tools=[
-        AgentTool(agent=evidence_impact_agent),
-        AgentTool(agent=governance_agent),
-        AgentTool(agent=value_portfolio_agent),
-        AgentTool(agent=routing_agent),
-        AgentTool(agent=action_agent),
+)
+
+root_agent = SequentialAgent(
+    name="readinessops_reassessment_workflow",
+    description=(
+        "Parallel specialist reassessment followed by schema-constrained "
+        "governance synthesis."
+    ),
+    sub_agents=[
+        parallel_reassessment,
+        synthesis_agent,
     ],
 )
 

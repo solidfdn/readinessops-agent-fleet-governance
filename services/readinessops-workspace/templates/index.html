@@ -18,12 +18,12 @@ header p{margin:7px 0 0;color:#cbd5e1}
 main{max-width:1480px;margin:auto;padding:20px}
 .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
 button{
-  border:0;border-radius:9px;padding:10px 14px;font-weight:750;
+  border:0;border-radius:9px;padding:10px 14px;font-weight:600;
   cursor:pointer;background:#1d4ed8;color:#fff
 }
 button.secondary{background:#334155}
-button.success{background:#047857}
-button.warn{background:#c2410c}
+button.success{background:#246BFD}
+button.warn{background:#0B1F3A}
 button:disabled{opacity:.45;cursor:not-allowed}
 select,input,textarea{
   width:100%;border:1px solid #cbd5e1;border-radius:8px;
@@ -41,11 +41,11 @@ label{display:block;font-size:12px;font-weight:700;color:#475569}
 .card h3{font-size:14px;margin:16px 0 8px}
 .chip{
   display:inline-block;padding:5px 9px;border-radius:999px;
-  background:#e2e8f0;font-size:12px;font-weight:800
+  background:#e2e8f0;font-size:12px;font-weight:600
 }
-.chip.good{background:#dcfce7;color:#166534}
-.chip.bad{background:#fee2e2;color:#991b1b}
-.chip.warn{background:#ffedd5;color:#9a3412}
+.chip.good{background:#EAF3FF;color:#0B1F3A;border:1px solid #BFDBFE}
+.chip.bad{background:#F8FAFC;color:#0B1F3A;border:1px solid #C7D5E8}
+.chip.warn{background:#F8FBFF;color:#64748B;border:1px solid #D8E2F0}
 .kv{display:grid;grid-template-columns:180px 1fr;gap:8px 12px;font-size:13px}
 .k{color:#64748b}
 .v{
@@ -54,11 +54,12 @@ label{display:block;font-size:12px;font-weight:700;color:#475569}
 }
 .story{
   margin:0 0 16px;padding:12px 15px;border:1px solid #bfdbfe;
-  border-radius:12px;background:#eff6ff;color:#1e3a8a;font-weight:750
+  border-radius:12px;background:#eff6ff;color:#1e3a8a;font-weight:600
 }
 .result{
-  white-space:pre-wrap;word-break:break-word;background:#0f172a;
-  color:#e2e8f0;border-radius:9px;padding:11px;font-size:12px;
+  white-space:pre-wrap;word-break:break-word;background:#F8FBFF;
+  color:#0B1F3A;border:1px solid #D8E2F0;border-radius:9px;
+  padding:11px;font-size:12px;
   min-height:58px;max-height:260px;overflow:auto
 }
 .pack{border-left:3px solid #93c5fd;padding:8px 10px;margin:8px 0;background:#f8fafc}
@@ -69,6 +70,26 @@ label{display:block;font-size:12px;font-weight:700;color:#475569}
   .grid{grid-template-columns:1fr}
   .kv{grid-template-columns:1fr}
 }
+
+.solifan-screen-mark{
+  position:absolute;
+  top:18px;
+  right:22px;
+  width:64px;
+  height:auto;
+  z-index:20;
+  pointer-events:none;
+  user-select:none;
+}
+
+@media (max-width:900px){
+  .solifan-screen-mark{
+    top:14px;
+    right:16px;
+    width:52px;
+  }
+}
+
 </style>
 
 <style id="solifan-readinessops-ui-v2">
@@ -80,11 +101,11 @@ label{display:block;font-size:12px;font-weight:700;color:#475569}
   --solifan-muted:#64748B;
   --solifan-surface:#FFFFFF;
   --solifan-page:#F8FAFC;
-  --solifan-success-bg:#DCFCE7;
-  --solifan-success:#166534;
-  --solifan-warning-bg:#FFF7E6;
-  --solifan-danger-bg:#FEE2E2;
-  --solifan-danger:#B42318;
+  --solifan-success-bg:#EAF3FF;
+  --solifan-success:#0B1F3A;
+  --solifan-warning-bg:#F8FBFF;
+  --solifan-danger-bg:#F8FAFC;
+  --solifan-danger:#0B1F3A;
 }
 
 /* Quiet, SOLIFAN-like surface language */
@@ -128,7 +149,7 @@ button,
   border-radius:8px !important;
   box-shadow:none !important;
   min-height:36px;
-  font-weight:700;
+  font-weight:600;
 }
 
 /* Separate control from outcome. */
@@ -173,7 +194,7 @@ button,
 .solifan-result-title{
   display:block;
   font-size:14px;
-  font-weight:800;
+  font-weight:600;
   color:var(--solifan-navy);
 }
 .solifan-result-caption{
@@ -188,6 +209,34 @@ button,
 .result-box details,
 *:has(> .solifan-result-title) details{
   margin-top:8px !important;
+}
+
+.result summary,
+.result-box summary,
+.status-output summary,
+.proof-result summary{
+  color:var(--solifan-muted) !important;
+  font-size:12px !important;
+  font-weight:500 !important;
+}
+
+.result pre,
+.result-box pre,
+.status-output pre,
+.proof-result pre{
+  margin-top:8px !important;
+  padding:10px 12px !important;
+  background:#FFFFFF !important;
+  color:var(--solifan-navy) !important;
+  border:1px solid var(--solifan-border) !important;
+  border-radius:8px !important;
+  box-shadow:none !important;
+  font-size:11px !important;
+  line-height:1.55 !important;
+  font-weight:400 !important;
+  white-space:pre-wrap !important;
+  word-break:break-word !important;
+  overflow:auto !important;
 }
 
 details{
@@ -206,18 +255,41 @@ input:focus, textarea:focus, select:focus{
   box-shadow:0 0 0 2px rgba(36,107,253,.10) !important;
 }
 
-/* Keep semantic status colors soft. */
-.success,
+/* Status is communicated by wording and hierarchy,
+   not traffic-light colors. */
+.chip.good,
 .status-success,
 .pill.success{
   background:var(--solifan-success-bg) !important;
   color:var(--solifan-success) !important;
+  border:1px solid #BFDBFE !important;
 }
-.danger,
+
+.chip.warn{
+  background:var(--solifan-warning-bg) !important;
+  color:var(--solifan-muted) !important;
+  border:1px solid var(--solifan-border) !important;
+}
+
+.chip.bad,
 .status-danger,
-.pill.danger{
+.pill.danger,
+.danger{
   background:var(--solifan-danger-bg) !important;
   color:var(--solifan-danger) !important;
+  border:1px solid #C7D5E8 !important;
+}
+
+button.success{
+  background:var(--solifan-blue) !important;
+  color:#FFFFFF !important;
+  border:1px solid var(--solifan-blue) !important;
+}
+
+button.warn{
+  background:var(--solifan-navy) !important;
+  color:#FFFFFF !important;
+  border:1px solid var(--solifan-navy) !important;
 }
 
 /* Never let an empty/probe placeholder dominate the card. */
@@ -250,7 +322,7 @@ button:disabled,
 .governance-state-note strong{
   display:block;
   font-size:13px;
-  font-weight:800;
+  font-weight:600;
 }
 .governance-state-note span{
   display:block;
@@ -275,7 +347,7 @@ button:disabled,
 .governance-state-note strong{
   display:block;
   font-size:13px;
-  font-weight:800;
+  font-weight:600;
   color:#0B1F3A;
 }
 .governance-state-note span{
@@ -289,6 +361,7 @@ button:disabled,
 
 </head>
 <body>
+<img class="solifan-screen-mark" src="/workspace-mark" alt="" aria-hidden="true">
 <header>
   <h1>ReadinessOps — Governance Workspace</h1>
   <p>Use changing evidence to review, publish, and enforce AI delegation boundaries.</p>
@@ -438,7 +511,7 @@ button:disabled,
         <input id="actionImpact" value="LOW">
       </div>
       <div class="actions">
-        <button onclick="requestAction()">Request action</button>
+        <button id="requestButton" onclick="requestAction()">Request action</button>
         <button class="success" id="executeButton"
           onclick="executeAction()" disabled>Execute with Identity B</button>
         <button class="secondary" onclick="runIdentityAProbe()">
@@ -498,12 +571,31 @@ function value(id){return el(id).value.trim();}
 function csv(id){return value(id).split(",").map(v=>v.trim()).filter(Boolean);}
 async function api(url,options={}){
   const response=await fetch(url,options);
-  const body=await response.json();
-  if(!response.ok) throw new Error(body.error||JSON.stringify(body));
+  const raw=await response.text();
+
+  let body={};
+
+  if(raw){
+    try{
+      body=JSON.parse(raw);
+    }catch{
+      body={raw_response:raw};
+    }
+  }
+
+  if(!response.ok){
+    throw new Error(
+      body.error ||
+      body.message ||
+      (raw && raw.length<240 ? raw : "") ||
+      `Request failed · HTTP ${response.status}`
+    );
+  }
+
   return body;
 }
 function selectedAgent(){return el("agentSelect").value||"case-triage-agent";}
-function showResult(id,data){
+function showResult(id,data,uiAction=""){
   const box=el(id);
   box.innerHTML="";
 
@@ -513,8 +605,8 @@ function showResult(id,data){
 
   if((data && data.error) || payload.error){
     const heading=document.createElement("div");
-    heading.style.fontWeight="800";
-    heading.style.color="#fecaca";
+    heading.style.fontWeight="600";
+    heading.style.color="var(--solifan-navy)";
     heading.textContent="Operation failed";
 
     const body=document.createElement("div");
@@ -538,7 +630,11 @@ function showResult(id,data){
     data?.http_status;
 
   if(id==="decisionResult"){
-    if(payload.to_status==="READY" || payload.readiness_status==="READY"){
+    if(uiAction==="BOUNDARY_UPDATED"){
+      title="Delegation Boundary updated";
+      message="The human-reviewed boundary was saved to the proposal.";
+      next="Current remains unchanged until Explicit Publish.";
+    }else if(payload.to_status==="READY" || payload.readiness_status==="READY"){
       title="Agent reactivated";
       const version=payload.delegation_boundary_version;
       message=version
@@ -581,7 +677,7 @@ function showResult(id,data){
   }
 
   const heading=document.createElement("div");
-  heading.style.fontWeight="800";
+  heading.style.fontWeight="600";
   heading.style.fontSize="15px";
   heading.textContent=title;
 
@@ -594,7 +690,7 @@ function showResult(id,data){
   if(next){
     const n=document.createElement("div");
     n.style.marginTop="8px";
-    n.style.fontWeight="700";
+    n.style.fontWeight="500";
     n.textContent=next;
     box.appendChild(n);
   }
@@ -619,7 +715,7 @@ function renderEvidenceResult(stage,data={}){
   box.innerHTML="";
 
   const title=document.createElement("div");
-  title.style.fontWeight="800";
+  title.style.fontWeight="600";
   title.style.fontSize="15px";
   title.style.marginBottom="6px";
 
@@ -628,7 +724,7 @@ function renderEvidenceResult(stage,data={}){
 
   const next=document.createElement("div");
   next.style.marginTop="8px";
-  next.style.fontWeight="700";
+  next.style.fontWeight="500";
 
   if(stage==="UPLOADING"){
     title.textContent="Uploading evidence…";
@@ -711,25 +807,47 @@ function updateWorkflowControls(state){
   const proposalStatus=state.proposal?.proposal_status||"";
   const publicationStatus=state.proposal?.publication_status||"";
   const readiness=state.agent?.readiness_status||"";
+  const event=state.latest_event||{};
+
+  const reassessmentPending=Boolean(
+    pendingEvidenceObject &&
+    !(
+      event.object_id===pendingEvidenceObject &&
+      ["COMPLETED","BLOCKED"].includes(event.status)
+    )
+  );
 
   // UI affordance mirrors the governed state.
   // Backend governance rules remain authoritative.
-  const reviewable=proposalStatus==="REVIEW_REQUIRED";
+  const reviewable=(
+    proposalStatus==="REVIEW_REQUIRED" &&
+    !reassessmentPending
+  );
 
   el("reviewButton").disabled=!reviewable;
   el("boundaryButton").disabled=!reviewable;
   el("approveButton").disabled=!reviewable;
 
   el("publishButton").disabled=!(
+    !reassessmentPending &&
     proposalStatus==="APPROVED" &&
     publicationStatus==="NOT_PUBLISHED"
   );
 
   el("activateButton").disabled=!(
+    !reassessmentPending &&
     proposalStatus==="PUBLISHED" &&
     publicationStatus==="PUBLISHED" &&
     readiness!=="READY"
   );
+
+  const requestButton=el("requestButton");
+  if(requestButton){
+    requestButton.disabled=(
+      reassessmentPending ||
+      readiness!=="READY"
+    );
+  }
 }
 function stopEvidencePolling(){
   if(evidencePollTimer){
@@ -799,6 +917,21 @@ async function refreshAll(){
   chip("loadChip","Refreshing…","");
   const state=await api(`/api/workspace?agent_id=${encodeURIComponent(selectedAgent())}`);
   currentState=state;
+
+  const select=el("agentSelect");
+  const selectedOption=select.options[select.selectedIndex];
+
+  if(selectedOption){
+    selectedOption.textContent=
+      `${state.agent?.name||state.target_agent||"Agent"} · ${state.agent?.readiness_status||"UNSET"}`;
+  }
+
+  try{
+    localStorage.setItem(
+      "readinessops.selectedAgent",
+      selectedAgent()
+    );
+  }catch{}
   txt("actorChip",state.actor);
   txt("agentName",state.agent?.name);
   const ready=state.agent?.readiness_status;
@@ -833,11 +966,27 @@ async function refreshAll(){
   );
 
   const proposal=state.proposal||{};
+
+  const proposalProcessing=Boolean(
+    pendingEvidenceObject &&
+    !(
+      event.object_id===pendingEvidenceObject &&
+      ["COMPLETED","BLOCKED"].includes(event.status)
+    )
+  );
+
   chip(
     "proposalStatus",
-    `${proposal.proposal_status||"—"} / ${proposal.publication_status||"—"}`,
-    proposal.proposal_status==="PUBLISHED"?"good":
-      proposal.proposal_status==="APPROVED"?"warn":""
+    proposalProcessing
+      ? "PROCESSING NEW PROPOSAL / CURRENT PUBLISHED"
+      : `${proposal.proposal_status||"—"} / ${proposal.publication_status||"—"}`,
+    proposalProcessing
+      ? "warn"
+      : proposal.proposal_status==="PUBLISHED"
+        ? "good"
+        : proposal.proposal_status==="APPROVED"
+          ? "warn"
+          : ""
   );
   txt("traceId",state.trace_id);
 
@@ -922,7 +1071,7 @@ async function saveBoundary(){
           value("reviewConditions").split("\n").map(v=>v.trim()).filter(Boolean)
       })
     });
-    showResult("decisionResult",result);
+    showResult("decisionResult",result,"BOUNDARY_UPDATED");
     await refreshAll();
   }catch(error){showResult("decisionResult",{error:error.message});}
 }
@@ -1020,8 +1169,43 @@ async function runIdentityAProbe(){
 async function boot(){
   try{
     await loadAgents();
-    el("agentSelect").value="case-triage-agent";
-    el("agentSelect").addEventListener("change",refreshAll);
+
+    const select=el("agentSelect");
+
+    let savedAgent="";
+
+    try{
+      savedAgent=localStorage.getItem(
+        "readinessops.selectedAgent"
+      )||"";
+    }catch{}
+
+    if(
+      savedAgent &&
+      [...select.options].some(
+        option=>option.value===savedAgent
+      )
+    ){
+      select.value=savedAgent;
+    }else if(
+      [...select.options].some(
+        option=>option.value==="case-triage-agent"
+      )
+    ){
+      select.value="case-triage-agent";
+    }
+
+    select.addEventListener("change",async()=>{
+      try{
+        localStorage.setItem(
+          "readinessops.selectedAgent",
+          selectedAgent()
+        );
+      }catch{}
+
+      await refreshAll();
+    });
+
     await refreshAll();
   }catch(error){
     chip("loadChip","Load failed","bad");

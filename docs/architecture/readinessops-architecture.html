@@ -4,32 +4,196 @@
 <meta charset="utf-8">
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#fff;color:#0f172a;font-family:Arial,Helvetica,sans-serif}
-.page{width:1920px;height:1080px;padding:46px 58px 34px;overflow:hidden}
-h1{margin:0;font-size:34px;letter-spacing:-.4px}
-.sub{margin-top:8px;font-size:18px;color:#475569}
-.flow{display:grid;grid-template-columns:1fr 42px 1.12fr 42px .9fr 42px 1.02fr;gap:0;margin-top:30px;height:700px}
-.arrow{display:flex;align-items:center;justify-content:center;font-size:34px;color:#64748b;font-weight:700}
-.panel{border:2px solid #cbd5e1;border-radius:18px;padding:18px 20px;background:#f8fafc}
-.panel.blue{background:#eff6ff;border-color:#93c5fd}
-.panel.green{background:#ecfdf5;border-color:#6ee7b7}
-.pt{font-size:19px;font-weight:700;margin-bottom:14px}
-.card{background:#fff;border:1.5px solid #94a3b8;border-radius:11px;padding:10px 12px;margin:9px 0;text-align:center}
-.card b{display:block;font-size:16px;margin-bottom:3px}
-.card span{font-size:13px;line-height:1.25;color:#475569}
-.card.blue{border-color:#1d4ed8}
-.card.orange{background:#fff7ed;border-color:#c2410c}
-.card.red{background:#fef2f2;border-color:#b91c1c}
-.card.green{border-color:#047857}
-.down{text-align:center;color:#64748b;font-size:19px;height:12px;line-height:12px}
-.split{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-.note{font-size:12px;color:#64748b;text-align:center;margin-top:5px}
-.bottom{display:grid;grid-template-columns:1.25fr .75fr;gap:20px;margin-top:20px}
-.band{height:150px;border:2px solid #94a3b8;border-radius:16px;padding:18px 24px;background:#f8fafc}
-.band.blue{background:#eff6ff;border-color:#1d4ed8}
-.band h2{font-size:19px;margin:0 0 10px}
-.band p{font-size:14px;color:#334155;margin:6px 0;line-height:1.35}
-.footer{margin-top:16px;font-size:13px;color:#475569}
+
+:root{
+  --navy:#0B1F3A;
+  --blue:#246BFD;
+  --blue-soft:#EAF3FF;
+  --blue-faint:#F7FAFF;
+  --page:#F8FAFC;
+  --surface:#FFFFFF;
+  --border:#D8E2F0;
+  --border-strong:#AFC7EA;
+  --muted:#64748B;
+  --text:#24344D;
+}
+
+body{
+  margin:0;
+  width:100vw;
+  height:100vh;
+  overflow:hidden;
+  background:var(--surface);
+  color:var(--navy);
+  font-family:"Meiryo UI","Segoe UI",Arial,sans-serif;
+}
+
+.page{
+  width:1920px;
+  height:1080px;
+  padding:46px 58px 34px;
+  overflow:hidden;
+  background:var(--surface);
+}
+
+h1{
+  margin:0;
+  font-size:33px;
+  font-weight:600;
+  letter-spacing:-.45px;
+  color:var(--navy);
+}
+
+.sub{
+  margin-top:8px;
+  font-size:17px;
+  font-weight:400;
+  color:var(--muted);
+}
+
+.flow{
+  display:grid;
+  grid-template-columns:1fr 42px 1.12fr 42px .9fr 42px 1.02fr;
+  gap:0;
+  margin-top:30px;
+  height:700px;
+}
+
+.arrow{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:31px;
+  color:#8DA0B8;
+  font-weight:400;
+}
+
+.panel{
+  border:1.5px solid var(--border);
+  border-radius:16px;
+  padding:18px 20px;
+  background:#FBFCFE;
+}
+
+.panel.blue,
+.panel.green{
+  background:var(--blue-faint);
+  border-color:var(--border-strong);
+}
+
+.pt{
+  font-size:18px;
+  font-weight:600;
+  margin-bottom:14px;
+  color:var(--navy);
+}
+
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:10px 12px;
+  margin:9px 0;
+  text-align:center;
+}
+
+.card b{
+  display:block;
+  font-size:15px;
+  font-weight:600;
+  margin-bottom:3px;
+  color:var(--navy);
+}
+
+.card span{
+  font-size:13px;
+  line-height:1.3;
+  color:var(--muted);
+}
+
+.card.blue,
+.card.green{
+  background:#FBFDFF;
+  border-color:#8FB8FF;
+}
+
+.card.orange{
+  background:var(--blue-faint);
+  border-color:#9ABCF2;
+}
+
+.card.red{
+  background:#F8FAFC;
+  border-color:#A8B6C8;
+}
+
+.card.red b{
+  color:var(--navy);
+}
+
+.down{
+  text-align:center;
+  color:#91A1B5;
+  font-size:18px;
+  font-weight:400;
+  height:12px;
+  line-height:12px;
+}
+
+.split{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:9px;
+}
+
+.note{
+  font-size:12px;
+  color:var(--muted);
+  text-align:center;
+  margin-top:5px;
+  line-height:1.35;
+}
+
+.bottom{
+  display:grid;
+  grid-template-columns:1.25fr .75fr;
+  gap:20px;
+  margin-top:20px;
+}
+
+.band{
+  height:150px;
+  border:1.5px solid var(--border);
+  border-radius:15px;
+  padding:18px 24px;
+  background:#FBFCFE;
+}
+
+.band.blue{
+  background:var(--blue-faint);
+  border-color:var(--border-strong);
+}
+
+.band h2{
+  font-size:18px;
+  font-weight:600;
+  color:var(--navy);
+  margin:0 0 10px;
+}
+
+.band p{
+  font-size:14px;
+  color:var(--text);
+  margin:6px 0;
+  line-height:1.4;
+}
+
+.footer{
+  margin-top:16px;
+  font-size:13px;
+  font-weight:400;
+  color:var(--muted);
+}
 </style>
 </head>
 <body>
@@ -44,14 +208,14 @@ h1{margin:0;font-size:34px;letter-spacing:-.4px}
 <div class="down">↓</div>
 <div class="card"><b>Cloud Storage → Pub/Sub</b><span>OBJECT_FINALIZE event</span></div>
 <div class="down">↓</div>
-<div class="card"><b>Private Cloud Run Worker</b><span>Authenticated event processing</span></div>
+<div class="card"><b>Private Cloud Run Worker</b><span>Authenticated event processing · Evidence Impact</span></div>
 <div class="down">↓</div>
 <div class="card orange"><b>Model Armor</b><span>Prompt injection / jailbreak gate</span></div>
 <div class="split">
   <div class="card red"><b>BLOCKED</b><span>No Revision<br>No LLM</span></div>
   <div class="card blue"><b>SAFE</b><span>Governed Revision<br>Firestore</span></div>
 </div>
-<div class="note">Security gate runs before governance LLM processing.</div>
+<div class="note">Safe evidence completes Evidence Impact before entering Agent Runtime A.</div>
 </section>
 
 <div class="arrow">→</div>
@@ -60,9 +224,9 @@ h1{margin:0;font-size:34px;letter-spacing:-.4px}
 <div class="pt">2&nbsp;&nbsp;Analysis &amp; Governance — Identity A</div>
 <div class="card blue"><b>Agent Runtime A</b><span>Governance Orchestrator<br>Analyzes and proposes only</span></div>
 <div class="down">↓</div>
-<div class="card blue"><b>Specialized Agents</b><span>Evidence Impact · Governance<br>Value &amp; Portfolio · Model Routing</span></div>
+<div class="card blue"><b>Parallel Specialist Agents</b><span>Governance · Value &amp; Portfolio<br>Model Routing</span></div>
 <div class="down">↓</div>
-<div class="card blue"><b>Four Decision Packs</b><span>Governance · Value · Routing · Portfolio</span></div>
+<div class="card blue"><b>Reassessment Synthesizer</b><span>Combines parallel analyses<br>into four Decision Packs</span></div>
 <div class="down">↓</div>
 <div class="card blue"><b>Deterministic Grounding Validation</b><span>Application-side verification</span></div>
 <div class="down">↓</div>
@@ -115,5 +279,25 @@ h1{margin:0;font-size:34px;letter-spacing:-.4px}
 </div>
 <div class="footer">Verified hackathon path: AI proposes · People decide · Publication defines official state · Published boundaries control execution</div>
 </div>
+<script>
+(() => {
+  const DESIGN_WIDTH = 1920;
+  const DESIGN_HEIGHT = 1080;
+  const page = document.querySelector(".page");
+
+  function fitArchitecture(){
+    const scale = Math.min(
+      window.innerWidth / DESIGN_WIDTH,
+      window.innerHeight / DESIGN_HEIGHT
+    );
+
+    page.style.transformOrigin = "top left";
+    page.style.transform = `scale(${scale})`;
+  }
+
+  window.addEventListener("resize", fitArchitecture);
+  fitArchitecture();
+})();
+</script>
 </body>
 </html>

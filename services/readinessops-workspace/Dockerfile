@@ -34,4 +34,5 @@ RUN groupadd --system appgroup \
 USER 10001:10001
 RUN id
 
+COPY services/readinessops-workspace/static/solifan-workspace-mark.png /app/static/solifan-workspace-mark.png
 CMD ["sh", "-c", "exec gunicorn --bind 0.0.0.0:${PORT:-8080} --workers 1 --threads 8 --timeout 180 main:app"]
