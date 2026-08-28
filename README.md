@@ -246,6 +246,10 @@ The key enforcement boundary is the separation between:
 A single governance Trace ID connects the evidence event, governed revision,
 proposal, human decision, publication, action request, and final execution.
 
+### Technical Briefing
+
+- [ReadinessOps Google Technical Briefing (PDF)](docs/ReadinessOps_Google_Technical_Briefing.pdf)
+
 ---
 
 ## Development and Deployment
