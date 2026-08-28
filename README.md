@@ -347,3 +347,19 @@ The final production recording demonstrates:
 A separate earlier verified path demonstrated permitted protected execution through Executor Identity B. The final submission recording intentionally emphasizes the stricter fail-closed enforcement path.
 
 The hackathon validation uses synthetic text evidence.
+
+## Reproducible Testing
+
+1. Deploy or open the ReadinessOps workspace using the setup instructions above.
+2. Confirm that the demo agent is in `READY`.
+3. Add the provided synthetic evidence and run the evidence impact analysis.
+4. Confirm that a material change moves the agent to `SUSPENDED`.
+5. Run reassessment and complete Human Review.
+6. Approve and explicitly publish the proposed Delegation Boundary.
+7. Confirm that the agent returns to `READY`.
+8. Run the protected action test.
+9. Verify that execution is denied when the action is outside the active Published Delegation Boundary.
+10. Verify that the Analysis Identity is denied access to the protected action.
+11. Review the trace to confirm the full path from evidence change through runtime enforcement.
+
+A separately verified path demonstrates permitted execution through Executor Identity B when the active Published Delegation Boundary allows the action.
