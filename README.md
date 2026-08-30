@@ -257,6 +257,8 @@ block
   class X execution
   class FSJ record
 ```
+
+![ReadinessOps architecture](docs/assets/readinessops-architecture.png)
 <!-- READINESSOPS_ARCHITECTURE_VISUAL_END -->
 
 
