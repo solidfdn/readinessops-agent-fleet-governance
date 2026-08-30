@@ -227,25 +227,21 @@ The published Delegation Boundary controls execution. An unauthorized action is 
 
 <!-- READINESSOPS_ARCHITECTURE_VISUAL_START -->
 ```mermaid
-flowchart TB
+block
+  columns 2
+
   E["1. Evidence & Safety<br/>UTF-8 Evidence → Cloud Storage<br/>Pub/Sub → Private Worker<br/>Model Armor first<br/>before Revision · LLM · Proposal<br/>SAFE → Draft + Evidence Impact<br/>Drift → SUSPENDED<br/>MATCH_FOUND → BLOCKED"]
-
-  A["2. Analysis — Identity A<br/>Vertex AI Runtime A<br/>ADK + Gemini 3.5 Flash<br/>3 Parallel Specialists<br/>Governance · Value · Routing<br/>Synthesizer → 4 Decision Packs<br/>+ Proposed Boundary<br/>Grounding → REVIEW_REQUIRED<br/>NOT_PUBLISHED"]
-
-  H["3. Human Control<br/>Review + Boundary Edit<br/>Approve: Current unchanged<br/>Explicit Publish<br/>→ Versioned ACTIVE Boundary<br/>Activate READY separately"]
-
+  A["2. Analysis — Identity A<br/>Evidence Impact → Runtime A<br/>ADK + Gemini 3.5 Flash<br/>3 Parallel Specialists<br/>Governance · Value · Routing<br/>Synthesizer → 4 Decision Packs<br/>+ Proposed Boundary<br/>Grounding → REVIEW_REQUIRED<br/>NOT_PUBLISHED"]
+  IAD["Protected execution<br/>Identity A → DENIED · HTTP 403"]
+  H["3. Human Control<br/>Proposal → Human Judgment<br/>Review + Boundary Edit<br/>Approve: Current unchanged<br/>Explicit Publish<br/>→ Versioned ACTIVE Boundary<br/>Activate READY separately"]
+  FSJ[("Firestore Official Records<br/>Every-phase audit · One Trace ID<br/>Read-only Judge Console")]
   X["4. Execution — Identity B<br/>Request → Deterministic Gate<br/>READY + ACTIVE Boundary<br/>action · tool · data<br/>impact · clearance<br/>PERMITTED → Runtime B<br/>Deterministic Revalidation<br/>PASS → Gateway / IAM<br/>→ Protected Pub/Sub<br/>FAIL → DENIED · Fail closed"]
 
-  E -->|Evidence impact| A
-  A -->|Human judgment| H
-  H -->|Published + READY| X
-  A -.->|Protected execution| IAD["Analysis Identity A<br/>DENIED · HTTP 403"]
-
-  FS[("Firestore Official Records<br/>Every phase · One Trace ID")]
-  JUDGE["Read-only Judge Console"]
-
-  X -.->|Cross-phase audit| FS
-  FS --> JUDGE
+  E --> A
+  A --> H
+  H --> X
+  A --> IAD
+  X --> FSJ
 
   classDef security fill:#F7FAFF,stroke:#9ABCF2,color:#0B1F3A;
   classDef blocked fill:#F8FAFC,stroke:#94A3B8,color:#0B1F3A;
@@ -254,12 +250,12 @@ flowchart TB
   classDef execution fill:#F7FAFF,stroke:#8FB8FF,color:#0B1F3A;
   classDef record fill:#FFFFFF,stroke:#64748B,color:#0B1F3A;
 
-  class E security;
-  class IAD blocked;
-  class A governance;
-  class H human;
-  class X execution;
-  class FS,JUDGE record;
+  class E security
+  class IAD blocked
+  class A governance
+  class H human
+  class X execution
+  class FSJ record
 ```
 <!-- READINESSOPS_ARCHITECTURE_VISUAL_END -->
 
