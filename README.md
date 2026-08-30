@@ -244,10 +244,7 @@ flowchart TB
   FS[("Firestore Official Records<br/>Events from all four control planes<br/>One Governance Trace ID")]
   JUDGE["Read-only Judge Console"]
 
-  E -.-> FS
-  A -.-> FS
-  H -.-> FS
-  X -.-> FS
+  X -.->|Audit events from every phase| FS
   FS --> JUDGE
 
   classDef security fill:#F7FAFF,stroke:#9ABCF2,color:#0B1F3A;
