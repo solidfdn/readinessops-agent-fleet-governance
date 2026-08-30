@@ -227,87 +227,71 @@ The published Delegation Boundary controls execution. An unauthorized action is 
 
 <!-- READINESSOPS_ARCHITECTURE_VISUAL_START -->
 ```mermaid
-flowchart LR
+flowchart TB
   subgraph E["1. Evidence & Safety"]
-    direction TB
-    EV["Synthetic UTF-8 text evidence"]
-    GCS["Cloud Storage<br/>OBJECT_FINALIZE"]
-    PS["Pub/Sub"]
-    EW["Authenticated private Cloud Run<br/>Evidence Worker"]
+    direction LR
+    EV["Synthetic UTF-8<br/>text evidence"]
+    INGEST["Cloud Storage OBJECT_FINALIZE<br/>Pub/Sub → Private Cloud Run Worker"]
     MA{"Model Armor<br/>before Revision or LLM"}
-    BL["BLOCKED<br/>No Revision · No LLM · No Proposal"]
-    REV["Draft governed Revision"]
-    EI["Evidence Impact<br/>Gemini 3.5 Flash + deterministic safety override"]
-    SU["READY → SUSPENDED<br/>on material safety drift"]
-    EV --> GCS --> PS --> EW --> MA
-    MA -->|MATCH_FOUND| BL
-    MA -->|SAFE| REV
-    REV --> EI
-    EI -->|material drift| SU
+    IMP["Draft Revision + Evidence Impact<br/>Gemini 3.5 Flash + safety override"]
+    BLOCK["BLOCKED<br/>No Revision · No LLM · No Proposal"]
+    SUSP["Material drift<br/>READY → SUSPENDED"]
+    EV --> INGEST --> MA
+    MA -->|SAFE| IMP
+    MA -->|MATCH_FOUND| BLOCK
+    IMP --> SUSP
   end
 
   subgraph A["2. Analysis & Governance — Identity A"]
-    direction TB
-    RTA["Vertex AI Agent Runtime A<br/>Google ADK + Gemini 3.5 Flash<br/>A2A · Analysis Identity A"]
-    SP["Parallel Specialists<br/>Governance · Value & Portfolio · Model Routing"]
-    SY["Reassessment Synthesizer<br/>4 Decision Packs + Proposed Boundary"]
-    GV["Application-layer<br/>Deterministic Grounding Validation"]
+    direction LR
+    RTA["Agent Runtime A<br/>Google ADK + Gemini 3.5 Flash"]
+    SP["3 Parallel Specialists<br/>Governance · Value & Portfolio · Model Routing"]
+    SYN["Reassessment Synthesizer<br/>4 Decision Packs + Proposed Boundary"]
+    GV["Deterministic<br/>Grounding Validation"]
     PROP["REVIEW_REQUIRED<br/>NOT_PUBLISHED"]
-    RTA --> SP --> SY --> GV --> PROP
+    RTA --> SP --> SYN --> GV --> PROP
   end
 
   subgraph H["3. Human Control"]
-    direction TB
-    WS["Authenticated Governance Workspace<br/>Human Review + Boundary Edit"]
-    AP["Approve<br/>Current unchanged"]
+    direction LR
+    WS["Governance Workspace<br/>Human Review + Boundary Edit"]
+    APP["Approve<br/>Current unchanged"]
     PUB["Explicit Publish"]
     BND["Published Current<br/>Versioned ACTIVE Boundary"]
-    ACTV["Activate READY<br/>separate human action"]
-    READY["Agent READY"]
-    WS --> AP --> PUB --> BND --> ACTV --> READY
+    READY["Activate READY<br/>Separate human action"]
+    WS --> APP --> PUB --> BND --> READY
   end
 
   subgraph X["4. Governed Execution — Identity B"]
-    direction TB
+    direction LR
     REQ["Protected Action Request"]
-    GATE{"Deterministic Gate<br/>READY + ACTIVE boundary<br/>action · tool · data · impact · clearance"}
-    DENY["DENIED<br/>Fail closed"]
-    AR["Audited PERMITTED Action Request"]
-    RTB["Explicit Execute<br/>Vertex AI Agent Runtime B<br/>Executor Identity B"]
+    GATE{"Deterministic Gate<br/>READY + ACTIVE Boundary<br/>action · tool · data · impact · clearance"}
+    EXEC["Audited PERMITTED Request<br/>Explicit Execute · Runtime B"]
     REVAL{"Deterministic Revalidation<br/>Boundary · Clearance · Idempotency"}
-    GW["Agent Gateway / IAM<br/>Governed egress control"]
-    PA["Protected Pub/Sub Action"]
-    IAD["Analysis Identity A<br/>Protected attempt DENIED · HTTP 403"]
+    ACTION["Agent Gateway / IAM<br/>Protected Pub/Sub Action"]
+    DENY["DENIED<br/>Fail closed"]
     REQ --> GATE
+    GATE -->|PERMITTED| EXEC --> REVAL
+    REVAL -->|PASS| ACTION
     GATE -->|DENIED| DENY
-    GATE -->|PERMITTED| AR
-    AR -->|Workspace invokes| RTB
-    RTB --> REVAL
     REVAL -->|FAIL| DENY
-    REVAL -->|PASS| GW
-    GW --> PA
   end
 
-  EI -->|impact established| RTA
+  IMP -->|impact established| RTA
   PROP --> WS
   READY --> REQ
   BND -.-> GATE
-  RTA -.-> IAD
+  RTA -.-> IAD["Analysis Identity A<br/>Protected execution DENIED · HTTP 403"]
 
-  FS[(Firestore<br/>Official versioned governance records)]
+  FS[("Firestore Official Records<br/>Revision · Proposal · Publication · Boundary<br/>Action · Audit · One Governance Trace ID")]
   JUDGE["Read-only Judge Console"]
-  TRACE["One Governance Trace ID<br/>Evidence → Decision → Publication → Execution"]
 
-  EW -.-> FS
-  REV -.-> FS
+  IMP -.-> FS
   PROP -.-> FS
-  WS -.-> FS
   PUB -.-> FS
   GATE -.-> FS
-  AR -.-> FS
-  REVAL -.-> FS
-  FS -.-> JUDGE
-  FS --- TRACE
+  ACTION -.-> FS
+  FS --> JUDGE
 
   classDef security fill:#F7FAFF,stroke:#9ABCF2,color:#0B1F3A;
   classDef blocked fill:#F8FAFC,stroke:#94A3B8,color:#0B1F3A;
@@ -316,12 +300,12 @@ flowchart LR
   classDef execution fill:#F7FAFF,stroke:#8FB8FF,color:#0B1F3A;
   classDef record fill:#FFFFFF,stroke:#64748B,color:#0B1F3A;
 
-  class EV,GCS,PS,EW,MA,REV,EI security;
-  class BL,SU,DENY,IAD blocked;
-  class RTA,SP,SY,GV,PROP governance;
-  class WS,AP,PUB,BND,ACTV,READY human;
-  class REQ,GATE,AR,RTB,REVAL,GW,PA execution;
-  class FS,JUDGE,TRACE record;
+  class EV,INGEST,MA,IMP security;
+  class BLOCK,SUSP,DENY,IAD blocked;
+  class RTA,SP,SYN,GV,PROP governance;
+  class WS,APP,PUB,BND,READY human;
+  class REQ,GATE,EXEC,REVAL,ACTION execution;
+  class FS,JUDGE record;
 ```
 <!-- READINESSOPS_ARCHITECTURE_VISUAL_END -->
 
