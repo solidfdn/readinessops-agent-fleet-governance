@@ -1,67 +1,24 @@
 flowchart TB
-  subgraph E["1. Evidence & Safety"]
-    direction LR
-    EV["Synthetic UTF-8<br/>text evidence"]
-    INGEST["Cloud Storage OBJECT_FINALIZE<br/>Pub/Sub → Private Cloud Run Worker"]
-    MA{"Model Armor<br/>before Revision or LLM"}
-    IMP["Draft Revision + Evidence Impact<br/>Gemini 3.5 Flash + safety override"]
-    BLOCK["BLOCKED<br/>No Revision · No LLM · No Proposal"]
-    SUSP["Material drift<br/>READY → SUSPENDED"]
-    EV --> INGEST --> MA
-    MA -->|SAFE| IMP
-    MA -->|MATCH_FOUND| BLOCK
-    IMP --> SUSP
-  end
+  E["1. Evidence & Safety<br/>Synthetic UTF-8 Evidence → Cloud Storage → Pub/Sub<br/>Authenticated Private Worker → Model Armor<br/><br/>SAFE: Draft Revision + Evidence Impact<br/>Material Drift: READY → SUSPENDED<br/>MATCH_FOUND: BLOCKED before Revision · LLM · Proposal"]
 
-  subgraph A["2. Analysis & Governance — Identity A"]
-    direction LR
-    RTA["Agent Runtime A<br/>Google ADK + Gemini 3.5 Flash"]
-    SP["3 Parallel Specialists<br/>Governance · Value & Portfolio · Model Routing"]
-    SYN["Reassessment Synthesizer<br/>4 Decision Packs + Proposed Boundary"]
-    GV["Deterministic<br/>Grounding Validation"]
-    PROP["REVIEW_REQUIRED<br/>NOT_PUBLISHED"]
-    RTA --> SP --> SYN --> GV --> PROP
-  end
+  A["2. Analysis & Governance — Identity A<br/>Vertex AI Agent Runtime A · Google ADK · Gemini 3.5 Flash<br/>3 Parallel Specialists: Governance · Value & Portfolio · Model Routing<br/>Reassessment Synthesizer → 4 Decision Packs + Proposed Boundary<br/>Grounding Validation → REVIEW_REQUIRED · NOT_PUBLISHED"]
 
-  subgraph H["3. Human Control"]
-    direction LR
-    WS["Governance Workspace<br/>Human Review + Boundary Edit"]
-    APP["Approve<br/>Current unchanged"]
-    PUB["Explicit Publish"]
-    BND["Published Current<br/>Versioned ACTIVE Boundary"]
-    READY["Activate READY<br/>Separate human action"]
-    WS --> APP --> PUB --> BND --> READY
-  end
+  H["3. Human Control<br/>Governance Workspace: Review + Boundary Edit<br/>Approve: Current unchanged<br/>Explicit Publish → Versioned ACTIVE Boundary<br/>Activate READY: separate human action"]
 
-  subgraph X["4. Governed Execution — Identity B"]
-    direction LR
-    REQ["Protected Action Request"]
-    GATE{"Deterministic Gate<br/>READY + ACTIVE Boundary<br/>action · tool · data · impact · clearance"}
-    EXEC["Audited PERMITTED Request<br/>Explicit Execute · Runtime B"]
-    REVAL{"Deterministic Revalidation<br/>Boundary · Clearance · Idempotency"}
-    ACTION["Agent Gateway / IAM<br/>Protected Pub/Sub Action"]
-    DENY["DENIED<br/>Fail closed"]
-    REQ --> GATE
-    GATE -->|PERMITTED| EXEC --> REVAL
-    REVAL -->|PASS| ACTION
-    GATE -->|DENIED| DENY
-    REVAL -->|FAIL| DENY
-  end
+  X["4. Governed Execution — Identity B<br/>Protected Request → Deterministic Gate<br/>READY + ACTIVE Boundary + action · tool · data · impact · clearance<br/>PERMITTED → Audited Request → Runtime B → Revalidation<br/>PASS → Agent Gateway / IAM → Protected Pub/Sub<br/>FAIL → DENIED · Fail closed"]
 
-  IMP -->|impact established| RTA
-  PROP --> WS
-  READY --> REQ
-  BND -.-> GATE
-  RTA -.-> IAD["Analysis Identity A<br/>Protected execution DENIED · HTTP 403"]
+  E -->|Evidence impact established| A
+  A -->|Proposal requires human judgment| H
+  H -->|Published boundary + READY| X
+  A -.->|Protected attempt| IAD["Analysis Identity A<br/>DENIED · HTTP 403"]
 
-  FS[("Firestore Official Records<br/>Revision · Proposal · Publication · Boundary<br/>Action · Audit · One Governance Trace ID")]
+  FS[("Firestore Official Records<br/>Events from all four control planes<br/>One Governance Trace ID")]
   JUDGE["Read-only Judge Console"]
 
-  IMP -.-> FS
-  PROP -.-> FS
-  PUB -.-> FS
-  GATE -.-> FS
-  ACTION -.-> FS
+  E -.-> FS
+  A -.-> FS
+  H -.-> FS
+  X -.-> FS
   FS --> JUDGE
 
   classDef security fill:#F7FAFF,stroke:#9ABCF2,color:#0B1F3A;
@@ -71,9 +28,9 @@ flowchart TB
   classDef execution fill:#F7FAFF,stroke:#8FB8FF,color:#0B1F3A;
   classDef record fill:#FFFFFF,stroke:#64748B,color:#0B1F3A;
 
-  class EV,INGEST,MA,IMP security;
-  class BLOCK,SUSP,DENY,IAD blocked;
-  class RTA,SP,SYN,GV,PROP governance;
-  class WS,APP,PUB,BND,READY human;
-  class REQ,GATE,EXEC,REVAL,ACTION execution;
+  class E security;
+  class IAD blocked;
+  class A governance;
+  class H human;
+  class X execution;
   class FS,JUDGE record;
