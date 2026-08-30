@@ -226,17 +226,112 @@ The published Delegation Boundary controls execution. An unauthorized action is 
 ## Architecture
 
 <!-- READINESSOPS_ARCHITECTURE_VISUAL_START -->
-![ReadinessOps architecture](docs/assets/readinessops-architecture.png)
+```mermaid
+flowchart LR
+  subgraph E["1. Evidence & Safety"]
+    direction TB
+    EV["Synthetic UTF-8 text evidence"]
+    GCS["Cloud Storage<br/>OBJECT_FINALIZE"]
+    PS["Pub/Sub"]
+    EW["Authenticated private Cloud Run<br/>Evidence Worker"]
+    MA{"Model Armor<br/>before Revision or LLM"}
+    BL["BLOCKED<br/>No Revision · No LLM · No Proposal"]
+    REV["Draft governed Revision"]
+    EI["Evidence Impact<br/>Gemini 3.5 Flash + deterministic safety override"]
+    SU["READY → SUSPENDED<br/>on material safety drift"]
+    EV --> GCS --> PS --> EW --> MA
+    MA -->|MATCH_FOUND| BL
+    MA -->|SAFE| REV
+    REV --> EI
+    EI -->|material drift| SU
+  end
+
+  subgraph A["2. Analysis & Governance — Identity A"]
+    direction TB
+    RTA["Vertex AI Agent Runtime A<br/>Google ADK + Gemini 3.5 Flash<br/>A2A · Analysis Identity A"]
+    SP["Parallel Specialists<br/>Governance · Value & Portfolio · Model Routing"]
+    SY["Reassessment Synthesizer<br/>4 Decision Packs + Proposed Boundary"]
+    GV["Application-layer<br/>Deterministic Grounding Validation"]
+    PROP["REVIEW_REQUIRED<br/>NOT_PUBLISHED"]
+    RTA --> SP --> SY --> GV --> PROP
+  end
+
+  subgraph H["3. Human Control"]
+    direction TB
+    WS["Authenticated Governance Workspace<br/>Human Review + Boundary Edit"]
+    AP["Approve<br/>Current unchanged"]
+    PUB["Explicit Publish"]
+    BND["Published Current<br/>Versioned ACTIVE Boundary"]
+    ACTV["Activate READY<br/>separate human action"]
+    READY["Agent READY"]
+    WS --> AP --> PUB --> BND --> ACTV --> READY
+  end
+
+  subgraph X["4. Governed Execution — Identity B"]
+    direction TB
+    REQ["Protected Action Request"]
+    GATE{"Deterministic Gate<br/>READY + ACTIVE boundary<br/>action · tool · data · impact · clearance"}
+    DENY["DENIED<br/>Fail closed"]
+    AR["Audited PERMITTED Action Request"]
+    RTB["Explicit Execute<br/>Vertex AI Agent Runtime B<br/>Executor Identity B"]
+    REVAL{"Deterministic Revalidation<br/>Boundary · Clearance · Idempotency"}
+    GW["Agent Gateway / IAM<br/>Governed egress control"]
+    PA["Protected Pub/Sub Action"]
+    IAD["Analysis Identity A<br/>Protected attempt DENIED · HTTP 403"]
+    REQ --> GATE
+    GATE -->|DENIED| DENY
+    GATE -->|PERMITTED| AR
+    AR -->|Workspace invokes| RTB
+    RTB --> REVAL
+    REVAL -->|FAIL| DENY
+    REVAL -->|PASS| GW
+    GW --> PA
+  end
+
+  EI -->|impact established| RTA
+  PROP --> WS
+  READY --> REQ
+  BND -.-> GATE
+  RTA -.-> IAD
+
+  FS[(Firestore<br/>Official versioned governance records)]
+  JUDGE["Read-only Judge Console"]
+  TRACE["One Governance Trace ID<br/>Evidence → Decision → Publication → Execution"]
+
+  EW -.-> FS
+  REV -.-> FS
+  PROP -.-> FS
+  WS -.-> FS
+  PUB -.-> FS
+  GATE -.-> FS
+  AR -.-> FS
+  REVAL -.-> FS
+  FS -.-> JUDGE
+  FS --- TRACE
+
+  classDef security fill:#F7FAFF,stroke:#9ABCF2,color:#0B1F3A;
+  classDef blocked fill:#F8FAFC,stroke:#94A3B8,color:#0B1F3A;
+  classDef governance fill:#EAF3FF,stroke:#246BFD,color:#0B1F3A;
+  classDef human fill:#FFFFFF,stroke:#AFC7EA,color:#0B1F3A;
+  classDef execution fill:#F7FAFF,stroke:#8FB8FF,color:#0B1F3A;
+  classDef record fill:#FFFFFF,stroke:#64748B,color:#0B1F3A;
+
+  class EV,GCS,PS,EW,MA,REV,EI security;
+  class BL,SU,DENY,IAD blocked;
+  class RTA,SP,SY,GV,PROP governance;
+  class WS,AP,PUB,BND,ACTV,READY human;
+  class REQ,GATE,AR,RTB,REVAL,GW,PA execution;
+  class FS,JUDGE,TRACE record;
+```
 <!-- READINESSOPS_ARCHITECTURE_VISUAL_END -->
 
 
 ReadinessOps separates evidence ingestion, AI analysis, human governance,
 and protected execution into distinct control planes.
 
-Architecture assets:
+Architecture source:
 
-- [Responsive architecture diagram — HTML](docs/architecture/readinessops-architecture.html)
-- [Mermaid flow reference](docs/architecture/readinessops-architecture.mmd)
+- [Mermaid source](docs/architecture/readinessops-architecture.mmd)
 
 The key enforcement boundary is the separation between:
 

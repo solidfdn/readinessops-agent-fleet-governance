@@ -1,92 +1,95 @@
-%%{init: {
-  "theme": "base",
-  "flowchart": {"curve": "linear", "nodeSpacing": 24, "rankSpacing": 34},
-  "themeVariables": {
-    "fontFamily": "Meiryo UI, Segoe UI, Arial, sans-serif",
-    "primaryColor": "#FFFFFF",
-    "primaryBorderColor": "#246BFD",
-    "primaryTextColor": "#0B1F3A",
-    "lineColor": "#8DA0B8",
-    "clusterBkg": "#FFFFFF",
-    "clusterBorder": "#D8E2F0"
-  }
-}}%%
-
 flowchart LR
+  subgraph E["1. Evidence & Safety"]
+    direction TB
+    EV["Synthetic UTF-8 text evidence"]
+    GCS["Cloud Storage<br/>OBJECT_FINALIZE"]
+    PS["Pub/Sub"]
+    EW["Authenticated private Cloud Run<br/>Evidence Worker"]
+    MA{"Model Armor<br/>before Revision or LLM"}
+    BL["BLOCKED<br/>No Revision · No LLM · No Proposal"]
+    REV["Draft governed Revision"]
+    EI["Evidence Impact<br/>Gemini 3.5 Flash + deterministic safety override"]
+    SU["READY → SUSPENDED<br/>on material safety drift"]
+    EV --> GCS --> PS --> EW --> MA
+    MA -->|MATCH_FOUND| BL
+    MA -->|SAFE| REV
+    REV --> EI
+    EI -->|material drift| SU
+  end
 
-subgraph E["1  Evidence & Safety"]
-direction TB
-U[Evidence Upload]
-G[Cloud Storage]
-P[Pub/Sub]
-W[Private Cloud Run<br/>Evidence Worker + Impact]
-M{Model Armor}
-B[BLOCKED<br/>No Revision / No LLM]
-R[Governed Revision]
-U --> G --> P --> W --> M
-M -->|MATCH_FOUND| B
-M -->|SAFE| R
-end
+  subgraph A["2. Analysis & Governance — Identity A"]
+    direction TB
+    RTA["Vertex AI Agent Runtime A<br/>Google ADK + Gemini 3.5 Flash<br/>A2A · Analysis Identity A"]
+    SP["Parallel Specialists<br/>Governance · Value & Portfolio · Model Routing"]
+    SY["Reassessment Synthesizer<br/>4 Decision Packs + Proposed Boundary"]
+    GV["Application-layer<br/>Deterministic Grounding Validation"]
+    PROP["REVIEW_REQUIRED<br/>NOT_PUBLISHED"]
+    RTA --> SP --> SY --> GV --> PROP
+  end
 
-subgraph A["2  Analysis & Governance — Identity A"]
-direction TB
-O[Agent Runtime A<br/>Governance Orchestrator]
-S[Parallel Specialist Agents<br/>Governance · Value & Portfolio · Model Routing]
-D[Reassessment Synthesizer<br/>Four Decision Packs]
-V[Deterministic<br/>Grounding Validation]
-Q[REVIEW_REQUIRED<br/>NOT_PUBLISHED]
-O --> S --> D --> V --> Q
-end
+  subgraph H["3. Human Control"]
+    direction TB
+    WS["Authenticated Governance Workspace<br/>Human Review + Boundary Edit"]
+    AP["Approve<br/>Current unchanged"]
+    PUB["Explicit Publish"]
+    BND["Published Current<br/>Versioned ACTIVE Boundary"]
+    ACTV["Activate READY<br/>separate human action"]
+    READY["Agent READY"]
+    WS --> AP --> PUB --> BND --> ACTV --> READY
+  end
 
-subgraph H["3  Human Control"]
-direction TB
-HR[Human Review<br/>Boundary Edit]
-AP[Approve]
-PU[Explicit Publish]
-DB[Active Delegation<br/>Boundary]
-RDY[Agent READY]
-HR --> AP
-AP -->|Current unchanged| PU
-PU --> DB --> RDY
-end
+  subgraph X["4. Governed Execution — Identity B"]
+    direction TB
+    REQ["Protected Action Request"]
+    GATE{"Deterministic Gate<br/>READY + ACTIVE boundary<br/>action · tool · data · impact · clearance"}
+    DENY["DENIED<br/>Fail closed"]
+    AR["Audited PERMITTED Action Request"]
+    RTB["Explicit Execute<br/>Vertex AI Agent Runtime B<br/>Executor Identity B"]
+    REVAL{"Deterministic Revalidation<br/>Boundary · Clearance · Idempotency"}
+    GW["Agent Gateway / IAM<br/>Governed egress control"]
+    PA["Protected Pub/Sub Action"]
+    IAD["Analysis Identity A<br/>Protected attempt DENIED · HTTP 403"]
+    REQ --> GATE
+    GATE -->|DENIED| DENY
+    GATE -->|PERMITTED| AR
+    AR -->|Workspace invokes| RTB
+    RTB --> REVAL
+    REVAL -->|FAIL| DENY
+    REVAL -->|PASS| GW
+    GW --> PA
+  end
 
-subgraph X["4  Governed Execution"]
-direction TB
-GT[Deterministic<br/>Execution Gate]
-IA[Analysis Identity A]
-DN[DENIED<br/>Fail Closed]
-IB[Executor Identity B]
-GW[Agent Gateway]
-ACT[Protected Action<br/>Pub/Sub]
-GT -->|Protected attempt| IA --> DN
-GT -->|Permitted request| IB --> GW --> ACT
-end
+  EI -->|impact established| RTA
+  PROP --> WS
+  READY --> REQ
+  BND -.-> GATE
+  RTA -.-> IAD
 
-R --> O
-Q --> HR
-RDY --> GT
+  FS[(Firestore<br/>Official versioned governance records)]
+  JUDGE["Read-only Judge Console"]
+  TRACE["One Governance Trace ID<br/>Evidence → Decision → Publication → Execution"]
 
-F[(Firestore Official Records<br/>Revision · Proposal · Publication<br/>Boundary · Audit · Action Request)]
-T[One Governance Trace ID<br/>Evidence Event → Human Decision → Execution]
+  EW -.-> FS
+  REV -.-> FS
+  PROP -.-> FS
+  WS -.-> FS
+  PUB -.-> FS
+  GATE -.-> FS
+  AR -.-> FS
+  REVAL -.-> FS
+  FS -.-> JUDGE
+  FS --- TRACE
 
-R -.-> F
-Q -.-> F
-PU -.-> F
-GT -.-> F
-ACT -.-> F
+  classDef security fill:#F7FAFF,stroke:#9ABCF2,color:#0B1F3A;
+  classDef blocked fill:#F8FAFC,stroke:#94A3B8,color:#0B1F3A;
+  classDef governance fill:#EAF3FF,stroke:#246BFD,color:#0B1F3A;
+  classDef human fill:#FFFFFF,stroke:#AFC7EA,color:#0B1F3A;
+  classDef execution fill:#F7FAFF,stroke:#8FB8FF,color:#0B1F3A;
+  classDef record fill:#FFFFFF,stroke:#64748B,color:#0B1F3A;
 
-T -.-> R
-T -.-> HR
-T -.-> ACT
-
-classDef security fill:#F7FAFF,stroke:#9ABCF2,color:#0B1F3A;
-classDef blocked fill:#F8FAFC,stroke:#A8B6C8,color:#0B1F3A;
-classDef governance fill:#EAF3FF,stroke:#246BFD,color:#0B1F3A;
-classDef human fill:#FFFFFF,stroke:#AFC7EA,color:#0B1F3A;
-classDef execution fill:#F7FAFF,stroke:#8FB8FF,color:#0B1F3A;
-
-class M security;
-class B,DN blocked;
-class O,S,D,V,Q governance;
-class HR,AP,PU,DB,RDY human;
-class GT,IA,IB,GW,ACT execution;
+  class EV,GCS,PS,EW,MA,REV,EI security;
+  class BL,SU,DENY,IAD blocked;
+  class RTA,SP,SY,GV,PROP governance;
+  class WS,AP,PUB,BND,ACTV,READY human;
+  class REQ,GATE,AR,RTB,REVAL,GW,PA execution;
+  class FS,JUDGE,TRACE record;
