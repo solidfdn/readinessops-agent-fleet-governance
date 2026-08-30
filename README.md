@@ -228,23 +228,23 @@ The published Delegation Boundary controls execution. An unauthorized action is 
 <!-- READINESSOPS_ARCHITECTURE_VISUAL_START -->
 ```mermaid
 flowchart TB
-  E["1. Evidence & Safety<br/>Synthetic UTF-8 Evidence → Cloud Storage → Pub/Sub<br/>Authenticated Private Worker → Model Armor<br/><br/>SAFE: Draft Revision + Evidence Impact<br/>Material Drift: READY → SUSPENDED<br/>MATCH_FOUND: BLOCKED before Revision · LLM · Proposal"]
+  E["1. Evidence & Safety<br/>UTF-8 Evidence → Cloud Storage<br/>Pub/Sub → Private Worker<br/>Model Armor first<br/>before Revision · LLM · Proposal<br/>SAFE → Draft + Evidence Impact<br/>Drift → SUSPENDED<br/>MATCH_FOUND → BLOCKED"]
 
-  A["2. Analysis & Governance — Identity A<br/>Vertex AI Agent Runtime A · Google ADK · Gemini 3.5 Flash<br/>3 Parallel Specialists: Governance · Value & Portfolio · Model Routing<br/>Reassessment Synthesizer → 4 Decision Packs + Proposed Boundary<br/>Grounding Validation → REVIEW_REQUIRED · NOT_PUBLISHED"]
+  A["2. Analysis — Identity A<br/>Vertex AI Runtime A<br/>ADK + Gemini 3.5 Flash<br/>3 Parallel Specialists<br/>Governance · Value · Routing<br/>Synthesizer → 4 Decision Packs<br/>+ Proposed Boundary<br/>Grounding → REVIEW_REQUIRED<br/>NOT_PUBLISHED"]
 
-  H["3. Human Control<br/>Governance Workspace: Review + Boundary Edit<br/>Approve: Current unchanged<br/>Explicit Publish → Versioned ACTIVE Boundary<br/>Activate READY: separate human action"]
+  H["3. Human Control<br/>Review + Boundary Edit<br/>Approve: Current unchanged<br/>Explicit Publish<br/>→ Versioned ACTIVE Boundary<br/>Activate READY separately"]
 
-  X["4. Governed Execution — Identity B<br/>Protected Request → Deterministic Gate<br/>READY + ACTIVE Boundary + action · tool · data · impact · clearance<br/>PERMITTED → Audited Request → Runtime B → Revalidation<br/>PASS → Agent Gateway / IAM → Protected Pub/Sub<br/>FAIL → DENIED · Fail closed"]
+  X["4. Execution — Identity B<br/>Request → Deterministic Gate<br/>READY + ACTIVE Boundary<br/>action · tool · data<br/>impact · clearance<br/>PERMITTED → Runtime B<br/>Deterministic Revalidation<br/>PASS → Gateway / IAM<br/>→ Protected Pub/Sub<br/>FAIL → DENIED · Fail closed"]
 
-  E -->|Evidence impact established| A
-  A -->|Proposal requires human judgment| H
-  H -->|Published boundary + READY| X
-  A -.->|Protected attempt| IAD["Analysis Identity A<br/>DENIED · HTTP 403"]
+  E -->|Evidence impact| A
+  A -->|Human judgment| H
+  H -->|Published + READY| X
+  A -.->|Protected execution| IAD["Analysis Identity A<br/>DENIED · HTTP 403"]
 
-  FS[("Firestore Official Records<br/>Events from all four control planes<br/>One Governance Trace ID")]
+  FS[("Firestore Official Records<br/>Every phase · One Trace ID")]
   JUDGE["Read-only Judge Console"]
 
-  X -.->|Audit events from every phase| FS
+  X -.->|Cross-phase audit| FS
   FS --> JUDGE
 
   classDef security fill:#F7FAFF,stroke:#9ABCF2,color:#0B1F3A;
