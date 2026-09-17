@@ -1,0 +1,205 @@
+name: Devpost Sharded Recovery
+
+on:
+  push:
+    branches:
+      - research/devpost-review-build-20260917
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gallery:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - id: 00
+            start: 1
+            end: 5
+          - id: 01
+            start: 6
+            end: 10
+          - id: 02
+            start: 11
+            end: 15
+          - id: 03
+            start: 16
+            end: 20
+          - id: 04
+            start: 21
+            end: 25
+          - id: 05
+            start: 26
+            end: 30
+          - id: 06
+            start: 31
+            end: 35
+          - id: 07
+            start: 36
+            end: 40
+          - id: 08
+            start: 41
+            end: 45
+          - id: 09
+            start: 46
+            end: 50
+          - id: 10
+            start: 51
+            end: 55
+          - id: 11
+            start: 56
+            end: 60
+          - id: 12
+            start: 61
+            end: 65
+          - id: 13
+            start: 66
+            end: 70
+          - id: 14
+            start: 71
+            end: 75
+          - id: 15
+            start: 76
+            end: 77
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check requests beautifulsoup4 lxml
+      - name: Fetch gallery pages
+        continue-on-error: true
+        run: |
+          mkdir -p shards
+          python tools/devpost_sharded_crawl.py gallery \
+            --start-page ${{ matrix.start }} --end-page ${{ matrix.end }} \
+            --out shards/gallery-${{ matrix.id }}.csv --delay 1.5 --attempts 5
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gallery-${{ matrix.id }}
+          path: shards/
+          retention-days: 3
+
+  gallery_merge:
+    needs: gallery
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: gallery-*
+          path: gallery_shards
+          merge-multiple: true
+      - name: Merge and validate gallery index
+        run: |
+          python - <<'PY2'
+          import csv,glob,json,sys
+          rows=[]; by={}
+          for path in sorted(glob.glob('gallery_shards/gallery-*.csv')):
+              with open(path,encoding='utf-8-sig',newline='') as f:
+                  for r in csv.DictReader(f):
+                      if r['url'] not in by:
+                          by[r['url']]=r; rows.append(r)
+          with open('gallery_index.csv','w',encoding='utf-8-sig',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=['source_gallery_page','url','title_from_gallery','tagline_from_gallery']);w.writeheader();w.writerows(rows)
+          summary={'expected_total':1841,'unique_project_urls':len(rows),'complete':len(rows)==1841}
+          open('gallery_summary.json','w',encoding='utf-8').write(json.dumps(summary,ensure_ascii=False,indent=2))
+          print(json.dumps(summary,indent=2))
+          if len(rows)!=1841: sys.exit(2)
+          PY2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gallery-index
+          path: |
+            gallery_index.csv
+            gallery_summary.json
+          retention-days: 3
+
+  project:
+    needs: gallery_merge
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check requests beautifulsoup4 lxml
+      - uses: actions/download-artifact@v4
+        with:
+          name: gallery-index
+          path: input
+      - name: Fetch project pages
+        continue-on-error: true
+        run: |
+          mkdir -p project_shards
+          python tools/devpost_sharded_crawl.py project \
+            --index input/gallery_index.csv \
+            --shard-index ${{ matrix.shard }} --shard-count 128 \
+            --out project_shards/project-${{ matrix.shard }}.csv \
+            --delay 1.5 --attempts 3
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: project-${{ matrix.shard }}
+          path: project_shards/
+          retention-days: 3
+
+  merge:
+    needs: project
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: gallery-index
+          path: input
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: project-*
+          path: project_shards
+          merge-multiple: true
+      - name: Merge and validate results
+        run: |
+          python - <<'PY2'
+          import csv,glob,json
+          with open('input/gallery_index.csv',encoding='utf-8-sig',newline='') as f: index=list(csv.DictReader(f))
+          project={}
+          fields=['url','source_gallery_page','title','tagline','description_meta','what_it_does','inspiration','how_built','challenges','accomplishments','next','built_with','full_text','http_status','fetch_error']
+          for path in glob.glob('project_shards/project-*.csv'):
+              with open(path,encoding='utf-8-sig',newline='') as f:
+                  for r in csv.DictReader(f): project[r['url']]=r
+          rows=[]
+          for g in index:
+              r=project.get(g['url']) or {'url':g['url'],'source_gallery_page':g['source_gallery_page'],'title':g['title_from_gallery'],'tagline':g['tagline_from_gallery'],'description_meta':'','what_it_does':'','inspiration':'','how_built':'','challenges':'','accomplishments':'','next':'','built_with':'','full_text':'','http_status':'','fetch_error':'missing project shard'}
+              if not r.get('title'): r['title']=g['title_from_gallery']
+              if not r.get('tagline'): r['tagline']=g['tagline_from_gallery']
+              rows.append(r)
+          with open('projects.csv','w',encoding='utf-8-sig',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(rows)
+          failed=[r for r in rows if r.get('fetch_error')]
+          strong=[r for r in rows if r.get('what_it_does') or r.get('description_meta') or r.get('full_text')]
+          summary={'expected_total':1841,'unique_gallery_urls':len(index),'project_records':len(rows),'project_page_successes':len(rows)-len(failed),'project_page_failures':len(failed),'deep_content_records':len(strong),'complete_gallery':len(index)==1841}
+          open('crawl_summary.json','w',encoding='utf-8').write(json.dumps(summary,ensure_ascii=False,indent=2))
+          with open('failures.csv','w',encoding='utf-8-sig',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=['url','title','http_status','fetch_error']);w.writeheader();w.writerows([{k:r.get(k,'') for k in ['url','title','http_status','fetch_error']} for r in failed])
+          print(json.dumps(summary,indent=2))
+          PY2
+      - uses: actions/upload-artifact@v4
+        with:
+          name: all-things-agentic-sharded
+          path: |
+            input/gallery_index.csv
+            projects.csv
+            failures.csv
+            crawl_summary.json
+          retention-days: 3
