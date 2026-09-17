@@ -1,0 +1,56 @@
+name: Devpost Card Index
+
+on:
+  push:
+    branches:
+      - research/devpost-card-index-20260917
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download gallery shards from validated sharded run
+        uses: actions/download-artifact@v4
+        with:
+          pattern: gallery-*
+          path: gallery_shards
+          merge-multiple: true
+          github-token: ${{ github.token }}
+          run-id: 35224024219
+      - name: Build 1841-card index without deduplicating submissions
+        run: |
+          python - <<'PY2'
+          import csv,glob,json,sys
+          rows=[]
+          for path in sorted(glob.glob('gallery_shards/gallery-*.csv')):
+              with open(path,encoding='utf-8-sig',newline='') as f:
+                  rows.extend(csv.DictReader(f))
+          rows.sort(key=lambda r:(int(r.get('source_gallery_page') or 999), r.get('title_from_gallery','').lower(), r.get('url','')))
+          seen={}
+          out=[]
+          for i,r in enumerate(rows,1):
+              u=r['url']; seen[u]=seen.get(u,0)+1
+              out.append({'submission_no':i,'source_gallery_page':r.get('source_gallery_page',''),'url':u,'title_from_gallery':r.get('title_from_gallery',''),'tagline_from_gallery':r.get('tagline_from_gallery',''),'duplicate_url_occurrence':seen[u]})
+          fields=['submission_no','source_gallery_page','url','title_from_gallery','tagline_from_gallery','duplicate_url_occurrence']
+          with open('gallery_cards_1841.csv','w',encoding='utf-8-sig',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(out)
+          dup_rows=sum(1 for r in out if r['duplicate_url_occurrence']>1)
+          unique=len(seen)
+          s={'expected_submission_cards':1841,'submission_cards':len(out),'unique_project_urls':unique,'duplicate_card_entries':len(out)-unique,'complete':len(out)==1841}
+          open('gallery_cards_summary.json','w',encoding='utf-8').write(json.dumps(s,ensure_ascii=False,indent=2))
+          print(json.dumps(s,indent=2))
+          if len(out)!=1841: sys.exit(2)
+          PY2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gallery-cards-1841
+          path: |
+            gallery_cards_1841.csv
+            gallery_cards_summary.json
+          retention-days: 3
