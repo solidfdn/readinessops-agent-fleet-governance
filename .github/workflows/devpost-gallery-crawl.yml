@@ -1,0 +1,62 @@
+name: Devpost Gallery Crawl
+
+on:
+  push:
+    branches:
+      - research/devpost-gallery-crawl-20260917
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install crawler dependencies
+        run: python -m pip install --disable-pip-version-check requests beautifulsoup4 lxml
+
+      - name: Crawl public Devpost gallery and submissions
+        id: crawl
+        continue-on-error: true
+        run: |
+          python tools/devpost_gallery_crawl.py \
+            --output-dir all_things_agentic_data \
+            --delay 0.75 \
+            --timeout 40 \
+            --attempts 5
+
+      - name: Show validation summary
+        if: always()
+        run: |
+          if [ -f all_things_agentic_data/crawl_summary.json ]; then
+            cat all_things_agentic_data/crawl_summary.json
+          else
+            echo "crawl_summary.json was not produced"
+          fi
+
+      - name: Upload crawl results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-things-agentic-raw
+          path: |
+            all_things_agentic_data/all_things_agentic_raw.zip
+            all_things_agentic_data/gallery_index.csv
+            all_things_agentic_data/gallery_summary.json
+            all_things_agentic_data/projects.jsonl
+            all_things_agentic_data/failures.csv
+            all_things_agentic_data/crawl_state.json
+            all_things_agentic_data/crawl_summary.json
+          if-no-files-found: warn
+          retention-days: 3
