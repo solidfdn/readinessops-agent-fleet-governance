@@ -1,0 +1,128 @@
+name: Devpost Boundary Recovery
+
+on:
+  push:
+    branches:
+      - research/devpost-boundary-recovery-20260917
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  boundary:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - id: 00
+            start: 4
+            end: 7
+          - id: 01
+            start: 9
+            end: 12
+          - id: 02
+            start: 14
+            end: 17
+          - id: 03
+            start: 19
+            end: 22
+          - id: 04
+            start: 24
+            end: 27
+          - id: 05
+            start: 29
+            end: 32
+          - id: 06
+            start: 34
+            end: 37
+          - id: 07
+            start: 39
+            end: 42
+          - id: 08
+            start: 44
+            end: 47
+          - id: 09
+            start: 49
+            end: 52
+          - id: 10
+            start: 54
+            end: 57
+          - id: 11
+            start: 59
+            end: 62
+          - id: 12
+            start: 64
+            end: 67
+          - id: 13
+            start: 69
+            end: 72
+          - id: 14
+            start: 74
+            end: 77
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check requests beautifulsoup4 lxml
+      - name: Refetch boundary pages
+        continue-on-error: true
+        run: |
+          mkdir -p recovery
+          python tools/devpost_sharded_crawl.py gallery \
+            --start-page ${{ matrix.start }} --end-page ${{ matrix.end }} \
+            --out recovery/recovery-${{ matrix.id }}.csv --delay 1.5 --attempts 5
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: recovery-${{ matrix.id }}
+          path: recovery/
+          retention-days: 3
+
+  merge:
+    needs: boundary
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download baseline index from first sharded run
+        uses: actions/download-artifact@v4
+        with:
+          name: gallery-index
+          path: baseline
+          github-token: ${{ github.token }}
+          run-id: 35224024219
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: recovery-*
+          path: recovery
+          merge-multiple: true
+      - name: Merge baseline with boundary snapshots
+        run: |
+          python - <<'PY2'
+          import csv,glob,json,sys
+          by={}; rows=[]
+          paths=['baseline/gallery_index.csv']+sorted(glob.glob('recovery/recovery-*.csv'))
+          for path in paths:
+              with open(path,encoding='utf-8-sig',newline='') as f:
+                  for r in csv.DictReader(f):
+                      if r['url'] not in by:
+                          by[r['url']]=r;rows.append(r)
+          rows.sort(key=lambda r:(int(r.get('source_gallery_page') or 999),r.get('title_from_gallery','').lower()))
+          with open('gallery_index_recovered.csv','w',encoding='utf-8-sig',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=['source_gallery_page','url','title_from_gallery','tagline_from_gallery']);w.writeheader();w.writerows(rows)
+          s={'expected_total':1841,'unique_project_urls':len(rows),'complete':len(rows)==1841,'baseline_unique':1829}
+          open('gallery_summary_recovered.json','w').write(json.dumps(s,indent=2))
+          print(json.dumps(s,indent=2))
+          if len(rows)!=1841: sys.exit(2)
+          PY2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gallery-index-recovered
+          path: |
+            gallery_index_recovered.csv
+            gallery_summary_recovered.json
+          retention-days: 3
