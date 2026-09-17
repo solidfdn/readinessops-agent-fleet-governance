@@ -1,0 +1,48 @@
+name: Devpost Raw Problem Pages
+
+on:
+  push:
+    branches:
+      - research/devpost-raw-problem-pages-20260917
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        page: [8, 10, 16, 18, 20, 30, 34, 41, 46, 55]
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check requests
+      - name: Fetch raw gallery HTML
+        run: |
+          mkdir -p raw
+          python - <<'PY2'
+          import os,random,time,requests
+          page=int('${{ matrix.page }}')
+          url=f'https://allthingsagentichackathon.devpost.com/project-gallery?page={page}'
+          s=requests.Session(); s.headers.update({'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/152.0.0.0 Safari/537.36','Accept-Language':'en-US,en;q=0.9'})
+          last=None
+          for i in range(8):
+              r=s.get(url,timeout=45); last=r
+              print('attempt',i+1,'status',r.status_code,'bytes',len(r.content),flush=True)
+              if r.status_code==200 and len(r.text)>1000:
+                  open(f'raw/page-{page}.html','w',encoding='utf-8').write(r.text)
+                  break
+              time.sleep(min(60,3*(2**i)+random.random()*2))
+          else:
+              raise SystemExit(f'failed: {last.status_code if last else None}')
+          PY2
+      - uses: actions/upload-artifact@v4
+        with:
+          name: raw-page-${{ matrix.page }}
+          path: raw/
+          retention-days: 3
